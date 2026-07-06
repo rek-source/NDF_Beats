@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en" data-theme="standard">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>NDF Beats — Manager Portal</title>
+  <meta name="description" content="NDF Beats manager portal: add reps, assign beats, review data coverage." />
+
+  <!-- Brand fonts (Fraunces + Inter) per §10 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <!-- Frozen brand contract + portal layout. ?v= busts Caddy's 4h asset cache. -->
+  <link rel="stylesheet" href="styles/tokens.css?v=a1" />
+  <link rel="stylesheet" href="styles/admin.css?v=a4" />
+
+  <!-- Leaflet (beat map modal) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <style>
+    .ad-beat__maplink{background:none;border:0;padding:0;margin:0;font:inherit;color:#16a34a;font-weight:700;cursor:pointer;text-align:left}
+    .ad-beat__maplink:hover{text-decoration:underline}
+    .ad-beat__mappin{font-size:.7em;opacity:.65}
+    .bm-scrim{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:1000;padding:24px}
+    .bm-scrim.open{display:flex}
+    .bm-card{background:#fff;border-radius:14px;width:min(960px,96vw);max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+    .bm-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:16px 18px;border-bottom:1px solid #ececec}
+    .bm-title{margin:0;font-family:Fraunces,Georgia,serif;font-size:1.25rem;color:#1a1a1a}
+    .bm-meta{margin:3px 0 0;color:#6b7280;font-size:.85rem}
+    .bm-close{background:none;border:0;font-size:1.7rem;line-height:1;cursor:pointer;color:#6b7280;padding:0 4px}
+    .bm-close:hover{color:#1a1a1a}
+    .bm-map{flex:1;min-height:62vh;width:100%}
+    .bm-legend{display:flex;gap:18px;flex-wrap:wrap;padding:11px 18px;font-size:.8rem;color:#6b7280;border-top:1px solid #ececec}
+    .bm-legend i{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:6px;vertical-align:middle}
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+  <header class="ad-header">
+    <div class="ad-header__brand">
+      <span class="ad-header__mark">NDF</span>
+      <div class="ad-header__titles">
+        <h1 class="ad-header__title">Manager Portal</h1>
+        <p class="ad-header__subtitle">Reps &amp; beat assignment &mdash; NDF Beats</p>
+      </div>
+    </div>
+    <nav class="ad-header__nav">
+      <a href="scoreboard.html">Scoreboard</a>
+      <a href="index.html">Rep App</a>
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle sunlight high-contrast mode">HC</button>
+      <button class="ad-refresh" id="refresh-btn" type="button"><span class="ad-refresh__glyph" aria-hidden="true">&#x21bb;</span> Refresh</button>
+    </nav>
+  </header>
+
+  <main class="ad-main" id="main" tabindex="-1">
+    <div class="ad-banner" id="banner" role="status" aria-live="polite" hidden></div>
+
+    <!-- ============================ DATA STATUS ============================ -->
+    <section class="ad-card ad-data">
+      <h2 class="ad-card__title">Data Coverage</h2>
+      <p class="ad-card__hint">Real counts only &mdash; no fabricated demographics. Enrich on-demand via Tracerfy.</p>
+      <div class="ad-stats" id="data-stats"></div>
+      <div class="ad-counties" id="data-counties"></div>
+    </section>
+
+    <!-- ===================== IDEAL-CLIENT PROFILE (Phase 2) ===================== -->
+    <section class="ad-card ad-profile">
+      <h2 class="ad-card__title">
+        Ideal-Client Profile
+        <span class="ad-pill ad-pill--learn" id="profile-state" hidden></span>
+      </h2>
+      <p class="ad-card__hint" id="profile-hint">
+        How each signal is weighted when scoring a door. The model re-weights itself
+        from real knock &amp; sale outcomes &mdash; <em>Learned</em> bars shift toward the
+        signals that actually convert as canvassing data accrues.
+      </p>
+      <div class="ad-profile__legend">
+        <span class="ad-legend ad-legend--default"><i></i> Default (hand-set)</span>
+        <span class="ad-legend ad-legend--learned"><i></i> Learned (from outcomes)</span>
+      </div>
+      <div class="ad-weights" id="profile-weights"></div>
+    </section>
+
+    <div class="ad-grid">
+      <!-- ============================ ADD REP ============================ -->
+      <section class="ad-card ad-addrep">
+        <h2 class="ad-card__title">Add a Rep</h2>
+        <form class="ad-form" id="rep-form" autocomplete="off">
+          <label class="ad-field">
+            <span class="ad-field__lbl">Full name</span>
+            <input class="ad-input" id="rep-name" name="name" type="text" placeholder="Jordan Rivera" required />
+          </label>
+          <label class="ad-field">
+            <span class="ad-field__lbl">Email</span>
+            <input class="ad-input" id="rep-email" name="email" type="email" placeholder="jordan@ndf.example" required />
+          </label>
+          <label class="ad-field">
+            <span class="ad-field__lbl">Role</span>
+            <select class="ad-input" id="rep-role" name="role">
+              <option value="rep" selected>Rep</option>
+              <option value="manager">Manager</option>
+            </select>
+          </label>
+          <button class="ad-btn" id="rep-submit" type="submit">Add Rep</button>
+          <p class="ad-form__msg" id="rep-msg" aria-live="polite"></p>
+        </form>
+      </section>
+
+      <!-- ============================ REPS LIST ============================ -->
+      <section class="ad-card ad-reps">
+        <h2 class="ad-card__title">Team <span class="ad-count" id="rep-count"></span></h2>
+        <ul class="ad-replist" id="rep-list"></ul>
+      </section>
+    </div>
+
+    <!-- ============================ BEATS ============================ -->
+    <section class="ad-card ad-beats">
+      <h2 class="ad-card__title">
+        Beats
+        <span class="ad-pill" id="unassigned-pill" hidden></span>
+      </h2>
+      <p class="ad-card__hint">Assign each beat to a rep. Unassigned beats are listed first.</p>
+      <div class="ad-table-wrap">
+        <table class="ad-table" id="beats-table">
+          <thead>
+            <tr>
+              <th scope="col">Beat</th>
+              <th scope="col">City</th>
+              <th scope="col" class="ad-num">Doors</th>
+              <th scope="col">Status</th>
+              <th scope="col">Assigned Rep</th>
+            </tr>
+          </thead>
+          <tbody id="beats-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer class="ad-footer">
+    <span id="generated-at">&mdash;</span>
+  </footer>
+
+  <!-- Beat map modal (opened by clicking a beat name) -->
+  <div class="bm-scrim" id="beatmap-scrim" role="dialog" aria-modal="true" aria-labelledby="beatmap-title" aria-hidden="true">
+    <div class="bm-card">
+      <div class="bm-head">
+        <div>
+          <h2 class="bm-title" id="beatmap-title">Beat</h2>
+          <p class="bm-meta" id="beatmap-meta">&mdash;</p>
+        </div>
+        <button class="bm-close" id="beatmap-close" type="button" aria-label="Close map">&times;</button>
+      </div>
+      <div class="bm-map" id="beatmap-map"></div>
+      <div class="bm-legend">
+        <span><i style="background:#16a34a"></i> High score (75+)</span>
+        <span><i style="background:#f59e0b"></i> Mid (50&ndash;74)</span>
+        <span><i style="background:#9ca3af"></i> Lower (&lt;50)</span>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="admin.js?v=a6" defer></script>
+</body>
+</html>

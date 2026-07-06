@@ -1,0 +1,532 @@
+/* ============================================================================
+ * NDF Beats — Manager Portal layout. Consumes tokens.css READ-ONLY.
+ * KHB family: sharp corners, Fraunces/Inter, 1px hairlines, no soft shadows.
+ * ==========================================================================*/
+
+body {
+  background: var(--bg);
+  min-height: 100vh;
+}
+
+/* Lift --muted to WCAG AA on the ivory bg for this surface only (#6B6760 was
+   ~4.0:1; #5C5851 is ~5:1 on --bg). HC theme keeps its own darker --muted. */
+:root { --muted: #5C5851; }
+
+/* Honor reduced-motion: the weight bars animate width on every reload. */
+@media (prefers-reduced-motion: reduce) {
+  .ad-w__bar { transition: none; }
+}
+
+/* ---------------------------------------------------------------- header --*/
+.ad-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 28px;
+  border-bottom: 1px solid var(--hairline);
+  background: var(--bg);
+}
+.ad-header__brand { display: flex; align-items: center; gap: 14px; }
+.ad-header__mark {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: 0.04em;
+  color: var(--bg);
+  background: var(--ink-dark);
+  padding: 8px 12px;
+}
+.ad-header__title { font-size: 22px; line-height: 1; }
+.ad-header__subtitle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+.ad-header__nav { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+/* Nav links carry a full 44px hit area (used one-handed on an iPad). */
+.ad-header__nav a {
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+.ad-refresh {
+  font-family: var(--font-body);
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 8px 16px;
+  background: var(--bg);
+  color: var(--ink);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.ad-refresh:hover { border-color: var(--bronze); }
+
+/* Sunlight (high-contrast) theme toggle — mirrors the rep app affordance. */
+.theme-toggle {
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 8px 14px;
+  background: var(--bg);
+  color: var(--ink);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.theme-toggle:hover { border-color: var(--bronze); color: var(--bronze-dark); }
+.theme-toggle[aria-pressed="true"] { background: var(--ink-dark); color: var(--bg); border-color: var(--ink-dark); }
+
+/* ------------------------------------------------------------------ main --*/
+.ad-main {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.ad-banner {
+  position: sticky;     /* stay in view even when the manager is scrolled down */
+  top: 0;
+  z-index: 20;
+  padding: 12px 16px;
+  border: 1px solid var(--hairline);
+  border-left: 4px solid var(--bronze);
+  font-size: 15px;
+  background: var(--ivory);
+  box-shadow: 0 1px 0 var(--hairline);
+}
+.ad-banner.is-error { border-left-color: var(--bad); color: var(--bad); }
+.ad-banner.is-ok { border-left-color: var(--ok); color: var(--ok); }
+
+/* ------------------------------------------------------------------ card --*/
+.ad-card {
+  background: var(--bg);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  padding: 22px 24px;
+}
+.ad-card__title {
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.ad-card__hint {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.ad-count { font-family: var(--font-body); font-size: 14px; color: var(--muted); font-weight: 500; }
+
+.ad-pill {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--warn);
+  border: 1px solid var(--warn);
+  padding: 3px 8px;
+}
+
+.ad-grid {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 22px;
+}
+
+/* ------------------------------------------------------------ data stats --*/
+.ad-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--hairline);
+  border: 1px solid var(--hairline);
+}
+.ad-stat {
+  background: var(--bg);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ad-stat__num {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 32px;
+  line-height: 1;
+  color: var(--ink);
+}
+.ad-stat__lbl {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.ad-counties { margin-top: 14px; font-size: 13px; color: var(--muted); }
+.ad-counties__lbl { font-weight: 600; color: var(--ink); margin-right: 4px; }
+.ad-tag {
+  display: inline-block;
+  border: 1px solid var(--hairline);
+  padding: 3px 8px;
+  margin: 2px 0;
+  color: var(--ink);
+}
+.ad-src {
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 1px 5px;
+  margin-left: 4px;
+}
+.ad-src--free { color: var(--ok); border: 1px solid var(--ok); }
+.ad-src--paid { color: var(--muted); border: 1px solid var(--hairline); }
+
+/* ------------------------------------------------------------- add rep ---*/
+.ad-form { display: flex; flex-direction: column; gap: 14px; }
+.ad-field { display: flex; flex-direction: column; gap: 6px; }
+.ad-field__lbl {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.ad-input {
+  font-family: var(--font-body);
+  font-size: 16px;          /* >=16px: stops iOS Safari zoom-on-focus */
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--ink);
+}
+.ad-input:focus { border-color: var(--bronze); }
+.ad-btn {
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 600;
+  min-height: 44px;
+  padding: 11px 16px;
+  background: var(--ink-dark);
+  color: var(--bg);
+  border: 1px solid var(--ink-dark);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.ad-btn:hover { background: var(--bronze-dark); border-color: var(--bronze-dark); }
+.ad-btn:disabled { opacity: 0.5; cursor: default; }
+.ad-form__msg { margin: 0; font-size: 13px; min-height: 1em; }
+.ad-form__msg.is-error { color: var(--bad); }
+.ad-form__msg.is-ok { color: var(--ok); }
+
+/* ------------------------------------------------------------ reps list --*/
+.ad-replist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.ad-rep {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 4px;
+  border-bottom: 1px solid var(--hairline);
+}
+.ad-rep:last-child { border-bottom: none; }
+.ad-rep.is-inactive { opacity: 0.5; }
+.ad-rep__avatar {
+  width: 38px; height: 38px; flex: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--ivory);
+  border: 1px solid var(--hairline);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--bronze-dark);
+}
+.ad-rep__main { display: flex; flex-direction: column; flex: 1 1 160px; min-width: 140px; }
+.ad-rep__name { font-weight: 600; font-size: 15px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ad-rep__email { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ad-rep__role {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 3px 7px;
+  border: 1px solid var(--hairline);
+}
+.ad-rep__role--manager { color: var(--bronze-dark); border-color: var(--bronze); }
+.ad-rep__beats { font-size: 12px; color: var(--muted); white-space: nowrap; min-width: 54px; text-align: right; }
+
+/* --------------------------------------------------------------- beats ---*/
+.ad-table-wrap { overflow-x: auto; }
+.ad-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.ad-table th, .ad-table td {
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--hairline);
+  text-align: left;
+}
+.ad-table thead th {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  font-weight: 600;
+}
+.ad-table .ad-num { text-align: right; font-variant-numeric: tabular-nums; }
+.ad-beat__name { font-weight: 600; max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ad-table tr.is-unassigned td { background: color-mix(in srgb, var(--warn) 7%, var(--bg)); }
+.ad-table tr.is-unassigned .ad-beat__name::before {
+  content: "● ";
+  color: var(--warn);
+}
+
+.ad-status {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 7px;
+  border: 1px solid var(--hairline);
+}
+.ad-status--ready { color: var(--bronze-dark); border-color: var(--bronze); }
+.ad-status--active { color: var(--ok); border-color: var(--ok); }
+.ad-status--complete { color: var(--ink); border-color: var(--hairline); opacity: 0.65; }
+
+.ad-assign {
+  font-family: var(--font-body);
+  font-size: 16px;          /* >=16px: stops iOS Safari zoom-on-focus */
+  min-height: 44px;         /* most-used control — full touch floor */
+  padding: 7px 10px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--ink);
+  min-width: 180px;
+}
+.ad-assign:focus { border-color: var(--bronze); }
+.ad-assign:disabled { opacity: 0.5; }
+
+.ad-empty { padding: 20px; color: var(--muted); text-align: center; }
+
+/* ----------------------------------------------- Ideal-Client Profile ----*/
+.ad-pill--learn { color: var(--bronze-dark); border-color: var(--bronze); }
+.ad-profile__legend {
+  display: flex;
+  gap: 18px;
+  margin-bottom: 14px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.ad-legend { display: inline-flex; align-items: center; gap: 6px; }
+.ad-legend i { width: 12px; height: 12px; display: inline-block; border: 1px solid var(--hairline); }
+.ad-legend--default i { background: var(--hairline); }
+.ad-legend--learned i { background: var(--bronze); border-color: var(--bronze); }
+
+.ad-weights { display: flex; flex-direction: column; gap: 14px; }
+.ad-w { display: grid; grid-template-columns: 140px 1fr; gap: 14px; align-items: center; }
+.ad-w__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ad-w__delta { font-size: 11px; font-weight: 600; letter-spacing: 0.02em; }
+.ad-w__delta.is-up { color: var(--ok); }
+.ad-w__delta.is-down { color: var(--muted); }
+
+.ad-w__bars { display: flex; flex-direction: column; gap: 4px; }
+/* bar track (1fr) + always-legible % label outside the bar (Critic #6) */
+.ad-w__row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px; }
+.ad-w__bar {
+  height: 18px;
+  min-width: 2px;
+  transition: width 400ms ease;
+}
+.ad-w__pct {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  min-width: 30px;
+  text-align: right;
+}
+.ad-w__bar--default { background: var(--hairline); outline: 1px solid var(--muted); outline-offset: -1px; }
+.ad-w__bar--learned { background: var(--bronze); }
+
+/* -------------------------------------------------------------- footer ---*/
+.ad-footer {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 20px 28px 40px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* ------------------------------------------------------------ responsive -*/
+@media (max-width: 880px) {
+  .ad-grid { grid-template-columns: 1fr; }
+  .ad-stats { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Portrait iPad / phone: reflow the beats table into stacked cards so the
+   assign <select> (most-used control) is full-width and never needs sideways
+   scrolling for a standing, one-handed manager. */
+@media (max-width: 768px) {
+  .ad-table-wrap { overflow-x: visible; }
+  .ad-table thead { display: none; }
+  .ad-table, .ad-table tbody, .ad-table tr, .ad-table td { display: block; width: 100%; }
+  .ad-table tr {
+    border: 1px solid var(--hairline);
+    margin-bottom: 12px;
+  }
+  .ad-table tr.is-unassigned { background: color-mix(in srgb, var(--warn) 7%, var(--bg)); }
+  .ad-table tr.is-unassigned td { background: none; }
+  .ad-table td {
+    border-bottom: 1px solid var(--hairline);
+    display: grid;
+    grid-template-columns: 38% 1fr;
+    gap: 10px;
+    align-items: center;
+  }
+  .ad-table td:last-child { border-bottom: none; }
+  .ad-table td::before {
+    content: attr(data-label);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    font-weight: 600;
+  }
+  /* keep the Beat-name cell's label (the unassigned ● bullet rule would hijack
+     its ::before otherwise) */
+  .ad-table tr.is-unassigned .ad-beat__name::before { content: attr(data-label); color: var(--muted); }
+  .ad-table .ad-num { text-align: left; }
+  .ad-assign { width: 100%; min-width: 0; }
+  /* let the full beat name wrap in the stacked card view */
+  .ad-beat__name { max-width: none; white-space: normal; overflow: visible; }
+}
+
+@media (max-width: 560px) {
+  .ad-header { flex-direction: column; align-items: flex-start; }
+  .ad-main { padding: 18px; }
+}
+@media (max-width: 480px) {
+  .ad-stats { grid-template-columns: 1fr; }
+  .ad-stat__num { font-size: 26px; }
+  .ad-rep { flex-wrap: wrap; }
+}
+
+/* ============================================================================
+ * Rep login-PIN management (admin.js) — KHB family.
+ * ==========================================================================*/
+.ad-rep__pin { display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.ad-pin__badge {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+  padding: 3px 8px; border: 1px solid var(--hairline); border-radius: var(--radius);
+}
+.ad-pin__badge.is-set { color: var(--ok); border-color: var(--ok); }
+.ad-pin__badge.is-unset { color: var(--warn); border-color: var(--warn); }
+.ad-pin__btn {
+  appearance: none; cursor: pointer;
+  font: 600 13px var(--font-body);
+  min-height: 44px; padding: 8px 14px; background: var(--bg); color: var(--ink);
+  border: 1px solid var(--hairline); border-radius: var(--radius);
+}
+.ad-pin__btn:hover { border-color: var(--bronze); color: var(--bronze-dark); }
+.ad-pin__edit { display: inline-flex; align-items: center; gap: 8px; }
+.ad-pin__input {
+  width: 88px; min-height: 44px; text-align: center; letter-spacing: 0.3em;
+  font: 600 18px var(--font-body); padding: 8px 10px;
+  border: 1px solid var(--ink); border-radius: var(--radius); background: var(--bg); color: var(--ink);
+}
+.ad-pin__save, .ad-pin__cancel {
+  appearance: none; cursor: pointer; font: 600 13px var(--font-body);
+  min-height: 44px; padding: 8px 14px; border: 1px solid var(--hairline); border-radius: var(--radius); background: var(--bg);
+}
+.ad-pin__save { background: var(--bronze); color: #fff; border-color: var(--bronze); }
+.ad-pin__save:hover { background: var(--bronze-dark); }
+.ad-pin__save:disabled, .ad-pin__cancel:disabled { opacity: 0.5; cursor: default; }
+.ad-pin__msg { font-size: 12px; font-weight: 600; color: var(--muted); margin-left: 6px; }
+.ad-pin__msg.is-error { color: var(--bad); }
+
+/* ---- rep lifecycle: edit / deactivate / unlock (2026-06-16) ---- */
+.ad-pin__badge.is-locked { color: var(--bad); border-color: var(--bad); }
+.ad-rep__since { font-size: 11px; color: var(--muted); }
+.ad-rep__tag {
+  font-style: normal; font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.04em; color: var(--muted); border: 1px solid var(--hairline);
+  padding: 1px 5px; margin-left: 6px;
+}
+.ad-rep__actions { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; flex-shrink: 0; }
+
+/* mask PIN entry (WebKit/Blink) while keeping the numeric keypad (type=tel) */
+.ad-pin__input--mask { -webkit-text-security: disc; }
+
+/* shared secondary-button look for the row actions, 44px touch floor */
+.ad-pin__unlock, .ad-rep__edit, .ad-rep__toggle {
+  appearance: none; cursor: pointer; font: 600 13px var(--font-body);
+  min-height: 44px; padding: 8px 14px; background: var(--bg); color: var(--ink);
+  border: 1px solid var(--hairline); border-radius: var(--radius);
+}
+.ad-pin__unlock:hover, .ad-rep__edit:hover, .ad-rep__toggle:hover { border-color: var(--bronze); color: var(--bronze-dark); }
+.ad-pin__unlock { background: var(--bad); color: #fff; border-color: var(--bad); } /* urgent: rep can't sign in */
+.ad-pin__unlock:hover { color: #fff; opacity: 0.9; }
+.ad-rep__toggle.is-reactivate { color: var(--ok); border-color: var(--ok); }
+.ad-pin__unlock:disabled, .ad-rep__edit:disabled, .ad-rep__toggle:disabled { opacity: 0.5; cursor: default; }
+
+.ad-rep__edit-form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; width: 100%; }
+.ad-rep__edit-form .ad-input { flex: 1 1 130px; min-width: 0; }
+.ad-rep__edit-form .ad-rep__edit-role { flex: 0 0 auto; }
+
+/* ===== /polish iter7: high-contrast (sunlight) theme refinements ===== */
+/* In HC, --hairline is #000, which turned the "Default" weight bar + legend
+   swatch solid black (indistinguishable from the bronze "Learned" bar). Give
+   them a mid-grey so the Default/Learned distinction survives. */
+:root[data-theme="hc"] .ad-w__bar--default { background: #CCCCCC; outline-color: #666666; }
+:root[data-theme="hc"] .ad-legend--default i { background: #CCCCCC; border-color: #666666; }
+/* The 7% warn tint on unassigned rows is invisible on HC's pure-white bg; lift it. */
+:root[data-theme="hc"] .ad-table tr.is-unassigned td,
+:root[data-theme="hc"] .ad-table tr.is-unassigned { background: color-mix(in srgb, var(--warn) 22%, var(--bg)); }
+
+/* ===== /polish iter8: loading skeletons (never a blank flash) ===== */
+.ad-skel {
+  background: linear-gradient(90deg, var(--ivory) 25%, var(--hairline) 50%, var(--ivory) 75%);
+  background-size: 200% 100%;
+  animation: ad-shimmer 1.2s ease-in-out infinite;
+  border-radius: var(--radius);
+}
+@keyframes ad-shimmer { to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .ad-skel { animation: none; } }
+.ad-skel-line { height: 12px; margin: 5px 0; }
+.ad-stat .ad-skel--num { height: 30px; width: 55%; }
+.ad-rep--skel { gap: 12px; }
+.ad-rep--skel .ad-rep__avatar { background: var(--ivory); border: none; }
+
+/* ===== /polish iter10: skip link (keyboard users jump past the nav) ===== */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 8px;
+  z-index: 100;
+  background: var(--ink-dark);
+  color: var(--bg);
+  padding: 10px 16px;
+  font: 600 14px var(--font-body);
+  text-decoration: none;
+}
+.skip-link:focus { left: 8px; }

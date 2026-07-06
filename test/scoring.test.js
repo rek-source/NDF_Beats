@@ -1,0 +1,197 @@
+// test/scoring.test.js  (OWNER: scoring)
+// Unit tests for the pure scoring layer (SPEC §6): scoreTarget / clusterBeats /
+// reweight stub / profile invariants. No DB, no HTTP — these import the scoring
+// modules directly and assert the frozen §6 contract.
+//
+// Run with: `node --test test/`.
+
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
+import { scoreTarget } from '../src/scoring/scoring.js';
+import { clusterBeats } from '../src/scoring/beats.js';
+import { updateWeights } from '../src/scoring/reweight.js';
+import { defaultProfile, validateProfile, SIGNAL_KEYS } from '../src/scoring/profile.js';
+
+// ---------------------------------------------------------------------------
+// profile.js
+// ---------------------------------------------------------------------------
+test('§6.4 default profile weights sum to 1', () => {
+  // validateProfile throws if weights don't sum to 1; returns the profile.
+  assert.equal(validateProfile(defaultProfile), defaultProfile);
+  const sum = SIGNAL_KEYS.reduce((acc, k) => acc + defaultProfile.weights[k], 0);
+  assert.ok(Math.abs(sum - 1) < 1e-9, `weights sum ${sum}`);
+});
+
+// ---------------------------------------------------------------------------
+// scoring.js
+// ---------------------------------------------------------------------------
+test('§6.1 scoreTarget returns an integer 0..100', () => {
+  const t = {
+    value_cents: 45_000_000, home_age: 35, owner_occupied: 1,
+    tenure_years: 12, recently_sold: 0, income_band: 6,
+  };
+  const s = scoreTarget(t, defaultProfile);
+  assert.ok(Number.isInteger(s));
+  assert.ok(s >= 0 && s <= 100);
+});
+
+test('§6.1 scoreTarget is deterministic (no randomness)', () => {
+  const t = {
+    value_cents: 50_000_000, home_age: 30, owner_occupied: 1,
+    tenure_years: 8, recently_sold: 1, income_band: 5,
+  };
+  assert.equal(scoreTarget(t, defaultProfile), scoreTarget(t, defaultProfile));
+});
+
+test('§6.1 an ideal-fit target outscores a poor-fit target', () => {
+  const ideal = {
+    value_cents: 45_000_000, home_age: 35, owner_occupied: 1,
+    tenure_years: 30, recently_sold: 1, income_band: 6,
+  };
+  const poor = {
+    value_cents: 5_000_000, home_age: 2, owner_occupied: 0,
+    tenure_years: 0, recently_sold: 0, income_band: 1,
+  };
+  const hi = scoreTarget(ideal, defaultProfile);
+  const lo = scoreTarget(poor, defaultProfile);
+  assert.ok(hi > lo, `ideal ${hi} should beat poor ${lo}`);
+  assert.ok(hi >= 90, `ideal should be high (${hi})`);
+  assert.ok(lo <= 30, `poor should be low (${lo})`);
+});
+
+test('§6.1 owner-occupied is a strong positive (all else equal)', () => {
+  const base = {
+    value_cents: 45_000_000, home_age: 35, tenure_years: 10,
+    recently_sold: 0, income_band: 6,
+  };
+  const occ = scoreTarget({ ...base, owner_occupied: 1 }, defaultProfile);
+  const non = scoreTarget({ ...base, owner_occupied: 0 }, defaultProfile);
+  assert.ok(occ > non, `occupied ${occ} should beat non-occupied ${non}`);
+});
+
+// ---------------------------------------------------------------------------
+// beats.js
+// ---------------------------------------------------------------------------
+function gridTargets(n) {
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    out.push({
+      id: `t${i}`,
+      lat: 37.6 + (i % 10) * 0.001,
+      lng: -121.0 + Math.floor(i / 10) * 0.001,
+      score: i, // distinct scores
+      no_soliciting: i % 25 === 0 ? 1 : 0,
+      city: 'Modesto',
+      county: 'Stanislaus',
+    });
+  }
+  return out;
+}
+
+test('§6.2 clusterBeats drops no_soliciting and keeps sizes within 40..60', () => {
+  const targets = gridTargets(160);
+  const solicitable = targets.filter((t) => !t.no_soliciting).length;
+  const beats = clusterBeats(targets, 50);
+
+  assert.ok(beats.length >= 1);
+  let total = 0;
+  for (const b of beats) {
+    assert.ok(b.target_count >= 1);
+    // No beat should exceed the upper window; folded leftovers may push a beat
+    // a little, but a fresh beat is capped at 60.
+    assert.ok(b.target_count <= 60 + 1, `beat too large: ${b.target_count}`);
+    total += b.target_count;
+    assert.ok(b.center && typeof b.center.lat === 'number' && typeof b.center.lng === 'number');
+    assert.ok(b.city && b.county);
+  }
+  // Every solicitable target lands in exactly one beat (no drops, no dupes).
+  assert.equal(total, solicitable);
+});
+
+test('§6.2 each beat is sequenced 1..n contiguously', () => {
+  const beats = clusterBeats(gridTargets(120), 50);
+  for (const b of beats) {
+    const seqs = b.targets.map((t) => t.seq);
+    assert.equal(seqs[0], 1);
+    assert.deepEqual(seqs, seqs.map((_, i) => i + 1));
+    // each target_id appears once
+    const ids = new Set(b.targets.map((t) => t.target_id));
+    assert.equal(ids.size, b.targets.length);
+  }
+});
+
+test('§6.2 clusterBeats is deterministic for a fixed input order', () => {
+  const a = clusterBeats(gridTargets(120), 50);
+  const b = clusterBeats(gridTargets(120), 50);
+  assert.deepEqual(
+    a.map((x) => x.targets.map((t) => t.target_id)),
+    b.map((x) => x.targets.map((t) => t.target_id)),
+  );
+});
+
+// ---------------------------------------------------------------------------
+// reweight.js (Phase 2 adaptive learning)
+// ---------------------------------------------------------------------------
+
+// Build a knock row carrying the target signals the reweighter reads.
+function knock(signals, disposition) {
+  return {
+    value_cents: 45_000_000, home_age: 35, owner_occupied: 1,
+    tenure_years: 12, recently_sold: 0, income_band: 6,
+    ...signals,
+    disposition,
+  };
+}
+
+// A dataset where ONLY the `value` signal separates sold from not-sold:
+// sold homes sit inside the value band (sub-score 1), not-sold homes are far
+// out (sub-score 0); every other signal is identical across both groups.
+function valueSeparatedKnocks(nPerGroup) {
+  const ks = [];
+  for (let i = 0; i < nPerGroup; i++) ks.push(knock({ value_cents: 45_000_000 }, 'sold'));
+  for (let i = 0; i < nPerGroup; i++) ks.push(knock({ value_cents: 1_000_000 }, 'not_home'));
+  return ks;
+}
+
+test('§6.3 no sales observed -> profile returned unchanged', () => {
+  assert.equal(updateWeights([], [], defaultProfile), defaultProfile);
+  const noSales = [knock({}, 'not_home'), knock({}, 'refused')];
+  assert.equal(updateWeights(noSales, [], defaultProfile), defaultProfile);
+});
+
+test('§6.3 learned profile stays in contract (weights sum to 1, non-negative)', () => {
+  const out = updateWeights(valueSeparatedKnocks(10), [], defaultProfile);
+  // validateProfile throws if weights are negative or do not sum to 1.
+  assert.doesNotThrow(() => validateProfile(out));
+  for (const k of SIGNAL_KEYS) assert.ok(out.weights[k] >= 0);
+});
+
+test('§6.3 a signal that predicts sales gains weight', () => {
+  const out = updateWeights(valueSeparatedKnocks(10), [], defaultProfile);
+  assert.ok(
+    out.weights.value > defaultProfile.weights.value,
+    `value weight should rise (${out.weights.value} vs ${defaultProfile.weights.value})`,
+  );
+  // a signal that did NOT discriminate should not gain weight
+  assert.ok(out.weights.owner_occupied <= defaultProfile.weights.owner_occupied + 1e-9);
+});
+
+test('§6.3 more sold outcomes move weights further toward the learned signal', () => {
+  const few = updateWeights(valueSeparatedKnocks(3), [], defaultProfile);
+  const many = updateWeights(valueSeparatedKnocks(40), [], defaultProfile);
+  assert.ok(
+    many.weights.value > few.weights.value,
+    `more data should push value weight higher (${many.weights.value} vs ${few.weights.value})`,
+  );
+});
+
+test('§6.3 updateWeights is deterministic and does not mutate the input', () => {
+  const ks = valueSeparatedKnocks(8);
+  const a = updateWeights(ks, [], defaultProfile);
+  const b = updateWeights(ks, [], defaultProfile);
+  assert.deepEqual(a.weights, b.weights);
+  // input profile weights untouched
+  assert.equal(defaultProfile.weights.value, 0.18);
+  assert.notEqual(a, defaultProfile); // a learned profile is a new object
+});

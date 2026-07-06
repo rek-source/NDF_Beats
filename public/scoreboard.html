@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en" data-theme="standard">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>NDF Beats — Scoreboard</title>
+  <meta name="description" content="Live gamified leaderboard for NDF Care Plan door-to-door canvassing." />
+
+  <!-- Brand fonts (Fraunces + Inter) per §10 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <!-- Frozen brand contract (read-only, owned by frontend) -->
+  <link rel="stylesheet" href="styles/tokens.css" />
+  <!-- Scoreboard layout (owned by scoreboard) -->
+  <link rel="stylesheet" href="styles/scoreboard.css" />
+</head>
+<body>
+  <header class="sb-header">
+    <div class="sb-header__brand">
+      <span class="sb-header__mark">NDF</span>
+      <div class="sb-header__titles">
+        <h1 class="sb-header__title">Beats Scoreboard</h1>
+        <p class="sb-header__subtitle">Care Plan Canvassing &mdash; live leaderboard</p>
+      </div>
+    </div>
+
+    <div class="sb-header__controls">
+      <!-- View tabs: Leaderboard / Rep Boards / Manager -->
+      <div class="sb-tabs" role="tablist" aria-label="Scoreboard view">
+        <button class="sb-tab is-active" role="tab" aria-selected="true" data-view="leaderboard" id="tab-leaderboard">
+          Leaderboard
+        </button>
+        <button class="sb-tab" role="tab" aria-selected="false" data-view="reps" id="tab-reps">
+          Rep Boards
+        </button>
+        <button class="sb-tab" role="tab" aria-selected="false" data-view="manager" id="tab-manager">
+          Manager
+        </button>
+      </div>
+
+      <!-- Period toggle: Today / Week / Month -->
+      <div class="sb-periods" role="group" aria-label="Time period">
+        <button class="sb-period is-active" data-period="today" aria-pressed="true">Today</button>
+        <button class="sb-period" data-period="week" aria-pressed="false">Week</button>
+        <button class="sb-period" data-period="month" aria-pressed="false">Month</button>
+      </div>
+
+      <!-- Live status / refresh -->
+      <div class="sb-live" aria-live="polite">
+        <span class="sb-live__dot" id="live-dot"></span>
+        <span class="sb-live__label" id="live-label">Live</span>
+        <button class="sb-live__refresh" id="refresh-btn" type="button" title="Refresh now" aria-label="Refresh now">&#x21bb;</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="sb-main">
+    <!-- Status banner (errors / loading) -->
+    <div class="sb-banner" id="banner" hidden></div>
+
+    <!-- =========================== LEADERBOARD VIEW =========================== -->
+    <section class="sb-view" id="view-leaderboard" role="tabpanel" aria-labelledby="tab-leaderboard">
+      <!-- Team rollup strip: the 6 KPIs -->
+      <div class="sb-team" id="team-strip" aria-label="Team totals">
+        <div class="sb-team__kpi" data-kpi="doors_knocked">
+          <span class="sb-team__num" data-num>&mdash;</span>
+          <span class="sb-team__lbl">Doors Knocked</span>
+        </div>
+        <div class="sb-team__kpi" data-kpi="doors_answered">
+          <span class="sb-team__num" data-num>&mdash;</span>
+          <span class="sb-team__lbl">Answered <em class="sb-team__sub" data-sub></em></span>
+        </div>
+        <div class="sb-team__kpi sb-team__kpi--yes" data-kpi="yeses">
+          <span class="sb-team__num" data-num>&mdash;</span>
+          <span class="sb-team__lbl">Yeses</span>
+        </div>
+        <div class="sb-team__kpi" data-kpi="nos">
+          <span class="sb-team__num" data-num>&mdash;</span>
+          <span class="sb-team__lbl">Nos</span>
+        </div>
+        <div class="sb-team__kpi" data-kpi="avg_sale_usd">
+          <span class="sb-team__num" data-num>&mdash;</span>
+          <span class="sb-team__lbl">Avg Sale</span>
+        </div>
+        <div class="sb-team__kpi" data-kpi="top_package">
+          <span class="sb-team__num sb-team__num--pkg" data-num>&mdash;</span>
+          <span class="sb-team__lbl">Top Package</span>
+        </div>
+      </div>
+
+      <!-- Ranked rep cards -->
+      <ol class="sb-board" id="board" aria-label="Rep leaderboard"></ol>
+    </section>
+
+    <!-- =========================== REP BOARDS VIEW =========================== -->
+    <!-- Each rep gets their own dedicated 6-KPI board, selectable (Ryan req #1). -->
+    <section class="sb-view" id="view-reps" role="tabpanel" aria-labelledby="tab-reps" hidden>
+      <div class="sb-repsel" id="rep-chips" role="tablist" aria-label="Select a rep"></div>
+
+      <div class="sb-repboard" id="rep-board" hidden>
+        <div class="sb-repboard__head">
+          <span class="sb-repboard__avatar" id="rb-avatar">&mdash;</span>
+          <div class="sb-repboard__titles">
+            <h2 class="sb-repboard__name" id="rb-name">&mdash;</h2>
+            <p class="sb-repboard__rank" id="rb-rank">&mdash;</p>
+          </div>
+        </div>
+
+        <!-- The rep's own 6 KPIs (same tile grid as the team strip) -->
+        <div class="sb-team" id="rb-kpis" aria-label="Rep totals">
+          <div class="sb-team__kpi" data-kpi="doors_knocked">
+            <span class="sb-team__num" data-num>&mdash;</span>
+            <span class="sb-team__lbl">Doors Knocked</span>
+          </div>
+          <div class="sb-team__kpi" data-kpi="doors_answered">
+            <span class="sb-team__num" data-num>&mdash;</span>
+            <span class="sb-team__lbl">Answered <em class="sb-team__sub" data-sub></em></span>
+          </div>
+          <div class="sb-team__kpi sb-team__kpi--yes" data-kpi="yeses">
+            <span class="sb-team__num" data-num>&mdash;</span>
+            <span class="sb-team__lbl">Yeses</span>
+          </div>
+          <div class="sb-team__kpi" data-kpi="nos">
+            <span class="sb-team__num" data-num>&mdash;</span>
+            <span class="sb-team__lbl">Nos</span>
+          </div>
+          <div class="sb-team__kpi" data-kpi="avg_sale_usd">
+            <span class="sb-team__num" data-num>&mdash;</span>
+            <span class="sb-team__lbl">Avg Sale</span>
+          </div>
+          <div class="sb-team__kpi" data-kpi="top_package">
+            <span class="sb-team__num sb-team__num--pkg" data-num>&mdash;</span>
+            <span class="sb-team__lbl">Top Package</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sb-empty" id="rep-empty" hidden>
+        No reps have logged activity for this period yet.
+      </div>
+    </section>
+
+    <!-- ============================ MANAGER VIEW ============================ -->
+    <section class="sb-view" id="view-manager" role="tabpanel" aria-labelledby="tab-manager" hidden>
+      <div class="sb-mgr">
+        <!-- Team rollup tile -->
+        <div class="sb-card sb-mgr__rollup">
+          <h2 class="sb-card__title">Team Rollup</h2>
+          <div class="sb-rollup-grid" id="mgr-rollup"></div>
+        </div>
+
+        <!-- Conversion funnel: knocked -> answered -> sold -->
+        <div class="sb-card sb-mgr__funnel">
+          <h2 class="sb-card__title">Conversion Funnel</h2>
+          <div class="sb-funnel" id="mgr-funnel"></div>
+        </div>
+
+        <!-- Phase-2 placeholders: disabled, no fake data -->
+        <div class="sb-card sb-mgr__phase2">
+          <h2 class="sb-card__title">Manager Tools</h2>
+          <div class="sb-phase2">
+            <div class="sb-phase2__tile" aria-disabled="true">
+              <span class="sb-phase2__name">Beat Approval</span>
+              <span class="sb-phase2__tag">Phase 2</span>
+            </div>
+            <div class="sb-phase2__tile" aria-disabled="true">
+              <span class="sb-phase2__name">Coverage %</span>
+              <span class="sb-phase2__tag">Phase 2</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Per-rep table -->
+      <div class="sb-card sb-mgr__table-card">
+        <h2 class="sb-card__title">Per-Rep Detail</h2>
+        <div class="sb-table-wrap">
+          <table class="sb-table" id="mgr-table">
+            <thead>
+              <tr>
+                <th scope="col" class="sb-table__rank">#</th>
+                <th scope="col">Rep</th>
+                <th scope="col" class="sb-num-col">Knocked</th>
+                <th scope="col" class="sb-num-col">Answered</th>
+                <th scope="col" class="sb-num-col">Answer&nbsp;Rate</th>
+                <th scope="col" class="sb-num-col">Yeses</th>
+                <th scope="col" class="sb-num-col">Nos</th>
+                <th scope="col" class="sb-num-col">Avg&nbsp;Sale</th>
+                <th scope="col">Top&nbsp;Package</th>
+              </tr>
+            </thead>
+            <tbody id="mgr-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="sb-footer">
+    <span id="generated-at" class="sb-footer__ts">&mdash;</span>
+    <nav class="sb-footer__nav">
+      <a href="index.html">Rep App</a>
+      <a href="training.html">Training</a>
+    </nav>
+  </footer>
+
+  <script src="scoreboard.js" defer></script>
+</body>
+</html>

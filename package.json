@@ -1,0 +1,19 @@
+{
+  "name": "ndf-beats",
+  "version": "1.0.0",
+  "description": "NDF Beats — iPad-first door-to-door Care Plan canvassing app (Phase 1, local-only, SQLite + mock seed).",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "seed": "node src/db/migrate.js && node scripts/seed.js",
+    "ingest": "node scripts/ingest.js",
+    "start": "node src/server.js",
+    "test": "node --test \"test/**/*.test.js\""
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.8.1",
+    "express": "^4.21.2"
+  }
+}

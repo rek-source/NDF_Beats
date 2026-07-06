@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NDF Home Care Membership — Homeowner Handout</title>
+<meta name="description" content="Door-to-door leave-behind for the NDF Home Care Membership: monthly plans, free welcome service, value stack, guarantee.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF8F5; --ink:#1A1A1A; --ink-dark:#161412; --bronze:#8C6A4A; --bronze-dark:#A88560;
+    --hairline:#E5DFD5; --muted:#6B6760; --ivory:#F0EBE3;
+    --serif:'Fraunces',Georgia,serif; --sans:'Inter',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body{font-family:var(--sans);color:var(--ink);background:#d9d4cc;line-height:1.42}
+  .page{
+    width:8.5in;min-height:11in;background:var(--bg);margin:22px auto;padding:0.5in 0.55in;
+    position:relative;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,.18);
+  }
+  h1,h2,h3,.tier-name,.stack-total b{font-family:var(--serif)}
+  .eyebrow{font-family:var(--sans);font-weight:700;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--bronze)}
+
+  /* ---- top trust strip (Z start: top-left authority, top-right social proof) ---- */
+  .trust{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid var(--hairline);padding-bottom:11px}
+  .brandmark{font-family:var(--serif);font-weight:600;font-size:21px;letter-spacing:-.01em;line-height:1}
+  .brandmark span{display:block;font-family:var(--sans);font-weight:700;font-size:8.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--bronze);margin-top:4px}
+  .trust-right{text-align:right;font-size:10px;color:var(--muted)}
+  .stars{color:var(--bronze);font-size:13px;letter-spacing:1px}
+  .ph{background:#F5E9DC;color:var(--bronze-dark);border:1px dashed var(--bronze);border-radius:2px;padding:0 4px;font-size:9px;font-weight:600}
+
+  /* ---- hero (benefit headline = Value Equation dream outcome) ---- */
+  .hero{padding:16px 0 12px}
+  h1{font-size:33px;line-height:1.05;font-weight:600;letter-spacing:-.015em;max-width:6.2in}
+  h1 em{font-style:normal;color:var(--bronze);font-weight:600}
+  .lede{font-size:12.5px;color:var(--ink);margin-top:9px;max-width:5.7in}
+  .lede b{color:var(--ink-dark)}
+
+  .hero-row{display:flex;gap:16px;align-items:stretch;margin-top:12px}
+  .photo{flex:0 0 2.5in;background:var(--ivory);border:1px solid var(--hairline);display:flex;align-items:center;justify-content:center;text-align:center;color:var(--muted);font-size:10px;padding:10px;min-height:1.7in}
+  .photo b{display:block;color:var(--bronze-dark);font-weight:700;margin-bottom:3px;font-size:10px}
+  .valueeq{flex:1;font-size:11px}
+  .valueeq li{list-style:none;padding:5px 0 5px 20px;position:relative;border-bottom:1px dotted var(--hairline)}
+  .valueeq li:last-child{border:0}
+  .valueeq li::before{content:"✓";position:absolute;left:0;top:5px;color:var(--bronze);font-weight:800}
+  .valueeq b{color:var(--ink-dark)}
+
+  /* ---- plan cards (anchor + decoy: Total Home anchors high, Preferred featured) ---- */
+  .plans{display:grid;grid-template-columns:1fr 1.12fr 1fr;gap:10px;margin-top:16px}
+  .plan{border:1px solid var(--hairline);background:#fff;padding:13px 12px;display:flex;flex-direction:column;position:relative}
+  .plan.feature{border:2px solid var(--bronze);box-shadow:0 6px 18px rgba(140,106,74,.16)}
+  .badge{position:absolute;top:-9px;left:50%;transform:translateX(-50%);background:var(--bronze);color:#fff;font-family:var(--sans);font-weight:700;font-size:8.5px;letter-spacing:.12em;text-transform:uppercase;padding:3px 10px;white-space:nowrap}
+  .tier-name{font-size:15px;font-weight:600;margin-bottom:2px}
+  .price{font-family:var(--serif);font-weight:600;font-size:30px;line-height:1;color:var(--ink-dark);margin:4px 0 1px}
+  .price small{font-family:var(--sans);font-size:12px;font-weight:600;color:var(--muted)}
+  .perday{font-size:9.5px;color:var(--bronze-dark);font-weight:600;margin-bottom:8px}
+  .plan ul{list-style:none;font-size:10.5px;color:var(--ink)}
+  .plan li{padding:3px 0 3px 14px;position:relative}
+  .plan li::before{content:"–";position:absolute;left:0;color:var(--bronze);font-weight:700}
+  .annual{margin-top:auto;padding-top:8px;font-size:9px;color:var(--muted);border-top:1px solid var(--hairline)}
+
+  /* ---- bonus banner (reciprocity + secondary offer, high-contrast focal) ---- */
+  .bonus{background:var(--ink-dark);color:#fff;margin-top:16px;padding:14px 16px;display:flex;align-items:center;gap:16px}
+  .bonus-flag{font-family:var(--sans);font-weight:800;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--bronze-dark);white-space:nowrap;border-right:1px solid rgba(255,255,255,.25);padding-right:16px}
+  .bonus-main{font-family:var(--serif);font-size:16px;font-weight:500;line-height:1.2}
+  .bonus-main b{color:var(--bronze-dark)}
+  .bonus-val{font-size:10px;color:#cfc6ba;margin-top:2px;font-family:var(--sans)}
+
+  /* ---- CTA (Z terminal, bottom-right) ---- */
+  .cta{margin-top:auto;display:flex;justify-content:space-between;align-items:center;gap:18px;border-top:2px solid var(--ink-dark);padding-top:12px}
+  .cta-text{font-size:11px;color:var(--muted)}
+  .cta-text .go{font-family:var(--serif);font-size:17px;color:var(--ink-dark);font-weight:600;display:block;margin-bottom:2px}
+  .phone{font-family:var(--serif);font-weight:600;font-size:22px;color:var(--ink-dark);letter-spacing:.01em}
+  .qr{flex:0 0 auto;text-align:center}
+  .qr img{width:1in;height:1in;display:block;border:1px solid var(--hairline);background:#fff}
+  .qr span{font-size:8.5px;color:var(--muted);display:block;margin-top:3px;font-weight:600}
+
+  /* ---- BACK ---- */
+  .why{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:14px}
+  .why h3{font-size:14px;font-weight:600;margin-bottom:4px}
+  .why .n{font-family:var(--serif);font-size:20px;color:var(--bronze);font-weight:600;line-height:1}
+  .why p{font-size:10.5px;color:var(--muted)}
+
+  .stack{background:var(--ivory);border:1px solid var(--hairline);padding:15px 16px;margin-top:16px}
+  .stack h2{font-size:16px;font-weight:600;margin-bottom:2px}
+  .stack .sub{font-size:10px;color:var(--muted);margin-bottom:9px}
+  .stack-row{display:flex;justify-content:space-between;font-size:11px;padding:4px 0;border-bottom:1px dotted var(--hairline)}
+  .stack-row .v{font-weight:700;color:var(--ink-dark);font-variant-numeric:tabular-nums}
+  .stack-row.free .v{color:var(--bronze)}
+  .stack-total{display:flex;justify-content:space-between;align-items:baseline;margin-top:9px;padding-top:9px;border-top:2px solid var(--ink-dark)}
+  .stack-total b{font-size:14px}
+  .stack-total .tv{font-size:12px;color:var(--muted);text-decoration:line-through;margin-right:8px}
+  .stack-total .price2{font-family:var(--serif);font-size:24px;font-weight:600;color:var(--ink-dark)}
+  .stack-total .price2 small{font-family:var(--sans);font-size:11px;color:var(--muted);font-weight:600}
+
+  .twocol{display:grid;grid-template-columns:1.15fr 1fr;gap:14px;margin-top:16px}
+  .guarantee{border:2px solid var(--bronze);padding:14px}
+  .guarantee h3{font-size:14px;font-weight:600;color:var(--ink-dark);margin-bottom:5px}
+  .guarantee h3::before{content:"✔ ";color:var(--bronze)}
+  .guarantee p{font-size:10.5px;color:var(--ink);margin-bottom:6px}
+  .guarantee p b{color:var(--ink-dark)}
+  .urgency{background:var(--ink-dark);color:#fff;padding:14px}
+  .urgency h3{font-family:var(--serif);font-size:14px;font-weight:600;margin-bottom:5px;color:#fff}
+  .urgency p{font-size:10.5px;color:#d6cdc1}
+  .urgency .hl{color:var(--bronze-dark);font-weight:700}
+
+  .quote{margin-top:16px;border-left:3px solid var(--bronze);padding:4px 0 4px 14px}
+  .quote p{font-family:var(--serif);font-size:13px;font-style:italic;color:var(--ink-dark)}
+  .quote cite{font-family:var(--sans);font-style:normal;font-size:10px;color:var(--muted);display:block;margin-top:4px}
+
+  table.incl{width:100%;border-collapse:collapse;margin-top:16px;font-size:10px}
+  table.incl th,table.incl td{border:1px solid var(--hairline);padding:6px 8px;text-align:left}
+  table.incl th{background:var(--ink-dark);color:#fff;font-family:var(--sans);font-weight:600;font-size:9.5px;letter-spacing:.04em}
+  table.incl td.c{text-align:center;color:var(--bronze);font-weight:700}
+  table.incl tr:nth-child(even) td{background:#fff}
+  table.incl .rowlabel{font-weight:600;color:var(--ink-dark)}
+
+  .foot{margin-top:auto;border-top:1px solid var(--hairline);padding-top:10px;display:flex;justify-content:space-between;align-items:center;gap:16px}
+  .foot .legal{font-size:9px;color:var(--muted);max-width:5in}
+  .foot .legal b{color:var(--ink-dark)}
+
+  .note{max-width:8.5in;margin:0 auto 8px;padding:8px 12px;font-size:11px;color:#7a4b17;background:#FBF0DF;border:1px solid #E7C99A}
+
+  @media print{
+    body{background:#fff}
+    .note{display:none}
+    .page{margin:0;box-shadow:none;width:auto;min-height:auto;padding:0.45in 0.5in}
+    .page + .page{page-break-before:always}
+    @page{size:letter;margin:0}
+  }
+</style>
+</head>
+<body>
+
+<div class="note">
+  <b>Rep handout — draft.</b> Placeholders in <span class="ph">dashed bronze</span> need real values: phone, star rating, homeowner count, testimonial, and two before/after photos. Prints double-sided on letter (heavy stock recommended). Print via your browser (⌘/Ctrl-P → double-sided).
+</div>
+
+<!-- ============================== FRONT ============================== -->
+<section class="page">
+  <div class="trust">
+    <div class="brandmark">Next Day Fix<span>A KHB Family Company · Licensed GC</span></div>
+    <div class="trust-right">
+      <div class="stars">★★★★★ <span class="ph">4.9 · 300+ reviews</span></div>
+      <div style="margin-top:3px">Trusted by <span class="ph">[N]</span> Central Valley homeowners</div>
+      <div style="margin-top:2px">CSLB&nbsp;#1070537</div>
+    </div>
+  </div>
+
+  <div class="hero">
+    <div class="eyebrow">The NDF Home Care Membership</div>
+    <h1 style="margin-top:6px">Keep every little thing in your home <em>handled</em> — for about 50¢ a day.</h1>
+    <p class="lede">One licensed crew becomes your home's team: a whole-home tune-up every year, real handyman hours included, and <b>front of the line every time you call.</b> We compete on licensed-GC quality — never on price.</p>
+
+    <div class="hero-row">
+      <div class="photo">
+        <div><b>[ BEFORE / AFTER PHOTO ]</b>real neighbor's pressure-washed driveway or cleaned gutters — no stock photos</div>
+      </div>
+      <ul class="valueeq">
+        <li><b>Never chase a handyman again.</b> One number, one trusted team for the dozen little jobs a house needs.</li>
+        <li><b>Catch small problems before they're big.</b> A licensed tech inspects the whole home once a year.</li>
+        <li><b>Skip the 3-week wait.</b> Members jump to the front of the line — even during storms.</li>
+        <li><b>Start this week.</b> Your free welcome service + first inspection get booked on the spot.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="plans">
+    <div class="plan">
+      <div class="tier-name">Essential</div>
+      <div class="price">$15<small>/mo</small></div>
+      <div class="perday">about 50¢ a day</div>
+      <ul>
+        <li>Annual whole-home inspection + photo report</li>
+        <li>Front-of-line priority scheduling</li>
+        <li>Member priority on every NDF &amp; KHB job</li>
+      </ul>
+      <div class="annual">or pay yearly &amp; lock in your rate</div>
+    </div>
+    <div class="plan feature">
+      <div class="badge">★ Most chosen</div>
+      <div class="tier-name">Preferred</div>
+      <div class="price">$30<small>/mo</small></div>
+      <div class="perday">about $1 a day</div>
+      <ul>
+        <li>Everything in Essential, plus…</li>
+        <li><b>1 hour of licensed handyman labor / year</b></li>
+        <li>Priority storm &amp; emergency response</li>
+      </ul>
+      <div class="annual">or pay yearly &amp; lock in your rate</div>
+    </div>
+    <div class="plan">
+      <div class="tier-name">Total Home</div>
+      <div class="price">$69<small>/mo</small></div>
+      <div class="perday">whole-home peace of mind</div>
+      <ul>
+        <li>Everything in Preferred, plus…</li>
+        <li><b>2 hours</b> of included handyman labor / yr</li>
+        <li>Annual Home Safety Check included</li>
+      </ul>
+      <div class="annual">or pay yearly &amp; lock in your rate</div>
+    </div>
+  </div>
+
+  <div class="bonus">
+    <div class="bonus-flag">Join<br>today</div>
+    <div>
+      <div class="bonus-main">Pick your <b>FREE welcome service</b>: Pressure Washing <b>or</b> Gutter Cleaning.</div>
+      <div class="bonus-val">Up to 1 hour of licensed labor — a $120 value — done free on your first visit when you start today.</div>
+    </div>
+  </div>
+
+  <div class="cta">
+    <div class="cta-text">
+      <span class="go">Start in 2 minutes.</span>
+      Your rep can sign you up right now, or call us:
+      <div class="phone"><span class="ph">(209) 555-0100</span></div>
+    </div>
+    <div class="qr">
+      <img alt="Scan to learn more" src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=0&data=https%3A%2F%2Fkhbvr.com%2Fgbb%2Fndf%2Fagreements%2Fhome-care-membership.html">
+      <span>Scan for full details</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== BACK ============================== -->
+<section class="page">
+  <div class="eyebrow" style="border-bottom:1px solid var(--hairline);padding-bottom:11px">Next Day Fix · Home Care Membership · Why homeowners join</div>
+
+  <div class="why">
+    <div><div class="n">01</div><h3>One team, zero hassle</h3><p>Stop vetting a new handyman for every little thing. One licensed, insured crew handles it all — you just make one call.</p></div>
+    <div><div class="n">02</div><h3>Problems caught early</h3><p>Your annual whole-home inspection finds the small leak, the loose railing, the worn seal — before it turns into a $3,000 repair.</p></div>
+    <div><div class="n">03</div><h3>Always first in line</h3><p>When something breaks at the worst time, members skip the 3-week queue and get priority — including storms and emergencies.</p></div>
+  </div>
+
+  <div class="stack">
+    <h2>Everything you get — the Preferred plan</h2>
+    <div class="sub">Real value of the services included every year. We show it because we don't discount our work — we include more of it.</div>
+    <div class="stack-row"><span>Annual Whole-Home Health Inspection + photo report</span><span class="v">$149</span></div>
+    <div class="stack-row"><span>1 hour of licensed handyman labor, included</span><span class="v">$120</span></div>
+    <div class="stack-row"><span>Front-of-line "next-day" priority scheduling, all year</span><span class="v">$99</span></div>
+    <div class="stack-row"><span>Priority storm &amp; emergency response</span><span class="v">$79</span></div>
+    <div class="stack-row free"><span><b>Your FREE welcome service</b> — pressure washing or gutter cleaning</span><span class="v">$120</span></div>
+    <div class="stack-total">
+      <div><span class="tv">$567 / yr value</span><b>Your price</b></div>
+      <div class="price2">$30<small> / month</small></div>
+    </div>
+  </div>
+
+  <div class="twocol">
+    <div class="guarantee">
+      <h3>Your no-risk guarantee</h3>
+      <p><b>Love it or leave it.</b> California law gives you until midnight of the <b>third business day</b> to cancel for a full refund — no questions asked. Get your first inspection booked today and still decide with zero risk.</p>
+      <p><b>Backed by a licensed GC.</b> Every job carries our workmanship guarantee — if it's not right, we make it right.</p>
+    </div>
+    <div class="urgency">
+      <h3>Why today</h3>
+      <p>We're only enrolling <span class="hl">a handful of homes on your street this week</span>, so we can schedule the neighborhood together.</p>
+      <p style="margin-top:6px">Your <span class="hl">free welcome service is reserved through <span class="ph" style="background:#33291d;border-color:var(--bronze-dark);color:#e7c99a">[this Fri]</span></span> — after that, new members start without it.</p>
+    </div>
+  </div>
+
+  <div class="quote">
+    <p>“<span class="ph" style="font-style:normal">Real one-line testimonial from a member — swap in a true quote.</span>”</p>
+    <cite>— <span class="ph" style="font-style:normal">First name, City</span>, NDF member</cite>
+  </div>
+
+  <table class="incl">
+    <tr><th>What's included</th><th>Essential · $15/mo</th><th>Preferred · $30/mo</th><th>Total Home · $69/mo</th></tr>
+    <tr><td class="rowlabel">Annual whole-home inspection + photo report</td><td class="c">✓</td><td class="c">✓</td><td class="c">✓</td></tr>
+    <tr><td class="rowlabel">Front-of-line priority scheduling</td><td class="c">✓</td><td class="c">✓</td><td class="c">✓</td></tr>
+    <tr><td class="rowlabel">Included handyman labor / year</td><td class="c">—</td><td class="c">1 hr</td><td class="c">2 hrs</td></tr>
+    <tr><td class="rowlabel">Priority storm &amp; emergency response</td><td class="c">—</td><td class="c">✓</td><td class="c">✓</td></tr>
+    <tr><td class="rowlabel">Annual Home Safety Check</td><td class="c">—</td><td class="c">—</td><td class="c">✓</td></tr>
+    <tr><td class="rowlabel">Free welcome service (sign-today bonus)</td><td class="c">✓</td><td class="c">✓</td><td class="c">✓</td></tr>
+  </table>
+
+  <div class="foot">
+    <div class="legal">
+      <b>Next Day Fix — A KHB Family Company.</b> Licensed general contractor, CSLB&nbsp;#1070537 · Central Valley, CA. We compete on licensed-GC quality, never on price. Not insurance or a home warranty. Pricing &amp; included services match your signed membership agreement; the 3-day right to cancel is stated there.
+    </div>
+    <div class="qr">
+      <img alt="Scan to learn more" src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=0&data=https%3A%2F%2Fkhbvr.com%2Fgbb%2Fndf%2Fagreements%2Fhome-care-membership.html">
+      <span><span class="ph">(209) 555-0100</span></span>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>

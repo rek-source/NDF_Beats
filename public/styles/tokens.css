@@ -1,0 +1,86 @@
+/* ============================================================================
+ * NDF Beats — Brand tokens (FROZEN design contract · SPEC §10)
+ * Owned by: frontend. scoreboard/training consume this READ-ONLY.
+ * Do NOT redefine these tokens anywhere else.
+ * KHB family: sharp corners, Fraunces/Inter, 1px hairlines, no soft shadows.
+ * ==========================================================================*/
+
+:root {
+  /* KHB standard (indoor) */
+  --bg:#FAF8F5; --ink:#1A1A1A; --ink-dark:#161412;
+  --bronze:#8C6A4A; --bronze-dark:#A88560;
+  --hairline:#E5DFD5; --muted:#6B6760; --ivory:#F0EBE3;
+  --ok:#2F7D4F; --warn:#B45309; --bad:#B91C1C;   /* status pins */
+  --radius:0;                                     /* sharp corners everywhere */
+  --font-display:'Fraunces',Georgia,serif;
+  --font-body:'Inter',system-ui,sans-serif;
+}
+
+/* HIGH-CONTRAST outdoor variant for iPad in sunlight */
+:root[data-theme="hc"] {
+  --bg:#FFFFFF; --ink:#000000; --ink-dark:#000000;
+  --bronze:#6B4A2A; --bronze-dark:#4A3320;       /* darker = AAA contrast */
+  --hairline:#000000; --muted:#333333; --ivory:#F2F2F2;
+  --ok:#0A6B2F; --warn:#8A4B00; --bad:#A30000;
+}
+
+/* ----- shared primitives (consumers may rely on these classes) ----- */
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+/* No iOS Safari gray tap flash — rely on each control's :active state instead. */
+* { -webkit-tap-highlight-color: transparent; }
+
+/* Brand-correct, sharp keyboard focus ring on every interactive element, so no
+   surface can ship without a visible focus state (WCAG 2.4.7). */
+:where(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--bronze-dark);
+  outline-offset: 2px;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--ink-dark);
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+a {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--bronze);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+a:hover { text-decoration-color: var(--bronze-dark); }
+
+/* em-dash bronze bullets */
+.dash-list { list-style: none; padding-left: 0; margin: 0; }
+.dash-list li { position: relative; padding-left: 1.4em; }
+.dash-list li::before {
+  content: "—";
+  position: absolute;
+  left: 0;
+  color: var(--bronze);
+  font-weight: 700;
+}
+
+/* sharp, hairline-bordered surfaces — never soft shadows */
+.surface {
+  background: var(--bg);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+}
