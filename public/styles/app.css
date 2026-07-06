@@ -410,6 +410,102 @@ body { overflow: hidden; }
   margin: 0 0 10px;
 }
 
+/* on-door script & rebuttals (rebuttals.js -> app.js) */
+.script-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 48px;               /* glove friendly */
+  border: 1px solid var(--bronze-dark);
+  background: var(--ivory);
+  color: var(--bronze-dark);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 10px 14px;
+  cursor: pointer;
+  margin-bottom: 14px;
+}
+.script-toggle:active { transform: translateY(1px); }
+.script-toggle__chev { font-size: 15px; }
+
+.script-panel {
+  border: 1px solid var(--hairline);
+  border-left: 3px solid var(--bronze-dark);
+  background: #fff;
+  padding: 14px 16px;
+  margin: -6px 0 18px;
+  max-height: 46vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.script-block { margin: 0 0 14px; }
+.script-block__title {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--bronze-dark);
+  font-weight: 800;
+  margin: 0 0 4px;
+}
+.script-block__text {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ink);
+  margin: 0;
+}
+
+.obj { border-top: 1px solid var(--hairline); }
+.obj__q {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  background: none;
+  border: 0;
+  text-align: left;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  padding: 12px 2px;
+  cursor: pointer;
+}
+.obj--open .obj__q { color: var(--bronze-dark); }
+.obj__a { padding: 0 2px 12px; }
+.obj__say {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ink);
+  margin: 0 0 8px;
+}
+.obj__never-title {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--bad);
+  font-weight: 800;
+  margin: 10px 0 4px;
+}
+.obj__never {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--bad);
+  margin: 0 0 4px;
+}
+
+.script-panel__more {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--bronze-dark);
+  text-decoration: none;
+}
+.script-panel__more:hover { text-decoration: underline; }
+
 /* big disposition buttons — glove friendly, min 64px */
 .disp-grid {
   display: grid;

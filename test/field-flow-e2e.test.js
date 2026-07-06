@@ -134,11 +134,12 @@ test('field flow e2e: login -> knock -> sale -> agreement handoff -> offline rep
     const loaded = loadPageScripts(ctx, PUBLIC_DIR);
     assert.deepEqual(
       loaded.map((s) => s.split('?')[0]),
-      ['offline.js', 'auth.js', 'app.js'],
-      'index.html must ship exactly the three app scripts, offline-queue first',
+      ['offline.js', 'auth.js', 'rebuttals.js', 'app.js'],
+      'index.html must ship exactly the four app scripts, offline-queue first, app.js last',
     );
     assert.ok(ctx.sandbox.OfflineQueue, 'offline.js must define window.OfflineQueue');
     assert.ok(ctx.sandbox.BeatsAuth, 'auth.js must define window.BeatsAuth');
+    assert.ok(ctx.sandbox.BeatsRebuttals, 'rebuttals.js must define window.BeatsRebuttals');
 
     // No session -> the login overlay opens and lists the roster.
     const overlay = await waitFor(() => doc.getElementById('loginScreen'), 'login overlay');
@@ -169,6 +170,60 @@ test('field flow e2e: login -> knock -> sale -> agreement handoff -> offline rep
     // The session is a server-signed token, not a client-invented identity.
     assert.ok(ctx.sandbox.BeatsAuth.isValid(), 'BeatsAuth session valid');
     assert.equal(ctx.sandbox.BeatsAuth.getRep().id, REP_ID);
+  });
+
+  await t.test('door script & rebuttals: toggle, accordion, sticky across doors', async () => {
+    const rb = ctx.sandbox.BeatsRebuttals;
+
+    // Open door #1's sheet — the script panel starts collapsed.
+    doc.getElementById('listScroll').querySelectorAll('.row')[0].click();
+    assert.ok(doc.getElementById('scrim').classList.contains('open'), 'door sheet open');
+    const toggle = doc.getElementById('scriptToggle');
+    const panel = doc.getElementById('scriptPanel');
+    assert.ok(toggle, 'script toggle rendered in the disposition phase');
+    assert.equal(panel.hidden, true, 'panel starts collapsed');
+    assert.equal(toggle.getAttribute('aria-expanded'), 'false');
+
+    // Toggle open: opener + must-say compliance line + every objection render.
+    toggle.click();
+    assert.equal(panel.hidden, false, 'panel opens');
+    assert.equal(toggle.getAttribute('aria-expanded'), 'true');
+    const blockTitles = panel.querySelectorAll('.script-block__title').map((e) => e.textContent);
+    assert.deepEqual(blockTitles, [rb.opener.title, rb.compliance.title]);
+    const qs = panel.querySelectorAll('.obj__q');
+    assert.equal(qs.length, rb.objections.length, 'one accordion row per objection');
+    // Array.from: rb lives in the vm realm; materialize a host-realm array so
+    // deepEqual compares values, not Array prototypes.
+    assert.deepEqual(qs.map((q) => q.textContent), Array.from(rb.objections, (o) => o.label));
+
+    // Accordion: opening "price" shows its rebuttal + banned lines; opening a
+    // second objection collapses the first (one conversation at a time).
+    const priceIdx = rb.objections.findIndex((o) => o.key === 'price');
+    qs[priceIdx].click();
+    const answers = panel.querySelectorAll('.obj__a');
+    assert.equal(answers[priceIdx].hidden, false, 'price rebuttal expands');
+    assert.match(answers[priceIdx].textContent, /Essential at fifteen a month/);
+    assert.match(answers[priceIdx].textContent, /Never say/, 'banned lines are shown');
+    const spouseIdx = rb.objections.findIndex((o) => o.key === 'spouse');
+    qs[spouseIdx].click();
+    assert.equal(answers[priceIdx].hidden, true, 'accordion collapses the previous answer');
+    assert.equal(answers[spouseIdx].hidden, false);
+    assert.match(answers[spouseIdx].textContent, /three business days/, 'CA 3-day cancel is the rebuttal');
+
+    // Sticky across doors: open door #2 — panel stays open, answers reset.
+    doc.getElementById('listScroll').querySelectorAll('.row')[1].click();
+    assert.equal(panel.hidden, false, 'panel visibility is sticky across doors');
+    assert.ok(
+      panel.querySelectorAll('.obj__a').every((a) => a.hidden),
+      'expanded answers reset for a fresh conversation',
+    );
+
+    // And the toggle preference persists closed too.
+    toggle.click();
+    assert.equal(panel.hidden, true);
+    doc.getElementById('listScroll').querySelectorAll('.row')[0].click();
+    assert.equal(panel.hidden, true, 'closed preference is sticky');
+    assert.ok(doc.getElementById('sheetAddr').textContent, 'sheet still functional');
   });
 
   await t.test('knock #1 (callback + note) reaches the server and the UI advances', async () => {

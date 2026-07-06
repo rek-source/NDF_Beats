@@ -22,6 +22,7 @@
   var API = location.pathname.replace(/\/[^/]*$/, '') + '/api';
   var REP_KEY = 'ndfbeats.rep_id';
   var THEME_KEY = 'ndfbeats.theme';
+  var SCRIPT_KEY = 'ndfbeats.script_open'; // door-script panel open/closed, sticky across doors
 
   // Status -> pin class (SPEC §7 palette). Keyed by last knock disposition.
   var DISP_PIN = {
@@ -68,7 +69,7 @@
       'scrim', 'sheetAddr', 'sheetSub', 'sheetClose', 'sheetScore', 'sheetFactors',
       'sheetLast', 'phaseDisp', 'phasePkg', 'pkgGrid', 'pkgBack', 'sheetNote',
       'sheetStatus', 'toast', 'curtain', 'curtainSpinner', 'curtainTitle',
-      'curtainMsg', 'curtainSlot'
+      'curtainMsg', 'curtainSlot', 'scriptToggle', 'scriptPanel', 'scriptChev'
     ].forEach(function (id) { els[id] = $(id); });
   }
 
@@ -411,6 +412,104 @@
     els.kpiSold.textContent = sold;
   }
 
+  // ------------------------------------------------------------------ on-door script
+  // Rep-facing objection/rebuttal cheat sheet (copy lives in rebuttals.js —
+  // window.BeatsRebuttals). Rendered once; the open/closed toggle is sticky
+  // across doors (localStorage) so a rep who works with the script visible
+  // keeps it visible, while expanded answers reset per door (new conversation).
+  var scriptRendered = false;
+
+  function scriptData() { return window.BeatsRebuttals || null; }
+
+  function renderScriptPanel() {
+    var data = scriptData();
+    if (!els.scriptPanel || !els.scriptToggle) return;
+    if (!data) { els.scriptToggle.hidden = true; return; } // copy failed to load — hide, never break logging
+    if (scriptRendered) return;
+    scriptRendered = true;
+
+    els.scriptPanel.innerHTML = '';
+
+    // Opener + must-say compliance line
+    [data.opener, data.compliance].forEach(function (blk) {
+      if (!blk) return;
+      var box = document.createElement('div');
+      box.className = 'script-block';
+      var h = document.createElement('p'); h.className = 'script-block__title'; h.textContent = blk.title;
+      var p = document.createElement('p'); p.className = 'script-block__text'; p.textContent = blk.script;
+      box.appendChild(h); box.appendChild(p);
+      els.scriptPanel.appendChild(box);
+    });
+
+    // Objection accordion — one answer open at a time
+    (data.objections || []).forEach(function (o) {
+      var item = document.createElement('div');
+      item.className = 'obj';
+      item.dataset.key = o.key;
+
+      var q = document.createElement('button');
+      q.type = 'button';
+      q.className = 'obj__q';
+      q.textContent = o.label;
+
+      var a = document.createElement('div');
+      a.className = 'obj__a';
+      a.hidden = true;
+      (o.say || []).forEach(function (line) {
+        var p = document.createElement('p'); p.className = 'obj__say'; p.textContent = line;
+        a.appendChild(p);
+      });
+      if (o.never && o.never.length) {
+        var nh = document.createElement('p'); nh.className = 'obj__never-title'; nh.textContent = 'Never say';
+        a.appendChild(nh);
+        o.never.forEach(function (line) {
+          var p = document.createElement('p'); p.className = 'obj__never'; p.textContent = line;
+          a.appendChild(p);
+        });
+      }
+
+      q.addEventListener('click', function () {
+        var wasOpen = !a.hidden;
+        collapseObjections();
+        if (!wasOpen) { a.hidden = false; item.classList.add('obj--open'); }
+      });
+
+      item.appendChild(q); item.appendChild(a);
+      els.scriptPanel.appendChild(item);
+    });
+
+    var foot = document.createElement('a');
+    foot.className = 'script-panel__more';
+    foot.href = 'training.html#m4';
+    foot.textContent = 'Full training & role-play →';
+    els.scriptPanel.appendChild(foot);
+  }
+
+  function collapseObjections() {
+    if (!els.scriptPanel) return;
+    els.scriptPanel.querySelectorAll('.obj__a').forEach(function (a) { a.hidden = true; });
+    els.scriptPanel.querySelectorAll('.obj--open').forEach(function (i) { i.classList.remove('obj--open'); });
+  }
+
+  function setScriptOpen(open, persist) {
+    if (!els.scriptPanel || !els.scriptToggle) return;
+    els.scriptPanel.hidden = !open;
+    els.scriptToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (els.scriptChev) els.scriptChev.textContent = open ? '▴' : '▾';
+    if (persist) localStorage.setItem(SCRIPT_KEY, open ? '1' : '0');
+  }
+
+  function scriptOpenPref() { return localStorage.getItem(SCRIPT_KEY) === '1'; }
+
+  // Called on every door open: fresh conversation -> collapse answers, but
+  // honor the rep's sticky open/closed preference for the panel itself.
+  function resetScriptForDoor() {
+    if (!scriptData()) return;
+    renderScriptPanel();
+    collapseObjections();
+    setScriptOpen(scriptOpenPref(), false);
+  }
+
   // ------------------------------------------------------------------ sheet
   function openSheet(targetId) {
     var t = state.targetById[targetId];
@@ -431,6 +530,7 @@
     }
 
     els.sheetNote.value = '';
+    resetScriptForDoor();
     showPhase('disp');
     setStatus('');
     // Re-enable the disposition buttons: logging a door disables them while the
@@ -705,6 +805,16 @@
     els.phaseDisp.querySelectorAll('.dispbtn').forEach(function (b) {
       b.addEventListener('click', function () { handleDisposition(b.dataset.disp); });
     });
+
+    // Door script & rebuttals toggle (sticky preference across doors)
+    if (els.scriptToggle) {
+      els.scriptToggle.addEventListener('click', function () {
+        renderScriptPanel();
+        if (!scriptData()) return;
+        setScriptOpen(els.scriptPanel.hidden, true);
+      });
+    }
+
     els.pkgBack.addEventListener('click', function () {
       showPhase('disp');
       setStatus('');

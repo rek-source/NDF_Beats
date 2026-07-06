@@ -20,7 +20,7 @@
   <!-- Brand tokens (frozen) + app layout. ?v= busts Caddy's 4h asset cache on
        each deploy (index.html itself is served no-cache, so new links apply at once). -->
   <link rel="stylesheet" href="styles/tokens.css?v=r3" />
-  <link rel="stylesheet" href="styles/app.css?v=r3" />
+  <link rel="stylesheet" href="styles/app.css?v=r5" />
 </head>
 <body>
   <div id="app" hidden>
@@ -91,6 +91,13 @@
 
         <!-- disposition phase -->
         <div id="phaseDisp">
+          <!-- On-door script: opener + objection rebuttals (public/rebuttals.js) -->
+          <button class="script-toggle" id="scriptToggle" type="button" aria-expanded="false" aria-controls="scriptPanel">
+            <span class="script-toggle__label">Door script &amp; rebuttals</span>
+            <span class="script-toggle__chev" id="scriptChev" aria-hidden="true">▾</span>
+          </button>
+          <div class="script-panel" id="scriptPanel" hidden></div>
+
           <p class="sheet__section-label">Log the door</p>
           <textarea class="note-field" id="sheetNote" placeholder="Optional note (callback time, gate code, dog…)"></textarea>
           <div class="disp-grid">
@@ -128,9 +135,10 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
           integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
-  <!-- App (offline queue + auth must load before app) -->
+  <!-- App (offline queue + auth + script copy must load before app) -->
   <script src="offline.js?v=r3"></script>
   <script src="auth.js?v=r4"></script>
-  <script src="app.js?v=r3"></script>
+  <script src="rebuttals.js?v=r5"></script>
+  <script src="app.js?v=r5"></script>
 </body>
 </html>
