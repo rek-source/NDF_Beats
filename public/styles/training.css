@@ -558,3 +558,109 @@ a.link:hover { text-decoration-color: var(--bronze-dark, #A88560); }
   .toc, .toplinks, .quiz-q, .quiz-actions, .foot { display: none; }
   .result { border: 2px solid #000; }
 }
+.login {
+  position: fixed; inset: 0; z-index: 8000; /* above the loading curtain (7000) */
+  display: none;
+  /* flex-start + margin:auto centers the card BUT still lets a too-tall card
+     scroll to both edges (align-items:center clips + blocks scroll on overflow). */
+  align-items: flex-start; justify-content: center;
+  background: var(--bg);
+  padding: max(24px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom));
+  overflow: auto;
+}
+.login.open { display: flex; }
+
+.login__card {
+  width: 100%; max-width: 420px; margin: auto;
+  background: var(--bg);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  padding: 28px 26px 30px;
+}
+.login__brand { text-align: center; margin-bottom: 18px; }
+.login__brand .wordmark {
+  font-family: var(--font-display); font-weight: 600; font-size: 22px;
+  letter-spacing: -0.01em; color: var(--ink-dark);
+}
+.login__brand .wordmark b { color: var(--bronze); font-weight: 700; }
+
+.login__title { font-size: 26px; text-align: center; margin-bottom: 4px; }
+.login__sub { text-align: center; color: var(--muted); margin: 0 0 18px; font-size: 15px; }
+
+.login__back {
+  appearance: none; background: none; border: 0; cursor: pointer;
+  color: var(--bronze); font: 600 16px var(--font-body);
+  padding: 10px 8px; margin-bottom: 4px; min-height: 44px;
+  display: inline-flex; align-items: center;
+}
+.login__back:hover { color: var(--bronze-dark); }
+
+/* rep picker — 2px ink strokes stay legible in direct sun (HC) */
+.login__reps { display: flex; flex-direction: column; gap: 10px; }
+.login__rep {
+  appearance: none; cursor: pointer;
+  width: 100%; min-height: 64px; padding: 0 18px;
+  display: flex; align-items: center;
+  background: var(--bg); color: var(--ink);
+  border: 2px solid var(--ink); border-radius: var(--radius);
+  font: 600 18px var(--font-body); text-align: left;
+}
+.login__rep:hover { border-color: var(--bronze); }
+.login__rep:active { background: var(--ivory); }
+.login__rep--last {
+  border-color: var(--bronze);
+  box-shadow: inset 4px 0 0 var(--bronze);
+}
+
+/* PIN dots */
+.pinpad__dots { display: flex; gap: 16px; justify-content: center; margin: 8px 0 22px; }
+.pinpad__dot {
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 3px solid var(--ink); background: transparent;
+}
+.pinpad__dot--filled { background: var(--bronze); border-color: var(--bronze); }
+
+/* number pad — glove/sun-friendly 84px keys with 2px ink strokes */
+.pinpad {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+  max-width: 360px; margin: 0 auto;
+}
+.pinpad__key {
+  appearance: none; cursor: pointer;
+  height: 84px;
+  background: var(--bg); color: var(--ink-dark);
+  border: 2px solid var(--ink); border-radius: var(--radius);
+  font: 600 30px var(--font-display);
+}
+.pinpad__key:hover { border-color: var(--bronze); }
+.pinpad__key:active { background: var(--ivory); }
+.pinpad__key:disabled { opacity: 0.45; cursor: default; }
+.pinpad__key--del { font-size: 24px; color: var(--ink); }
+.pinpad__key--blank { border: 0; background: none; cursor: default; pointer-events: none; }
+
+.login__hint {
+  min-height: 22px; margin-top: 18px; text-align: center;
+  font-size: 14px; color: var(--muted); font-weight: 600;
+}
+.login__hint--err { color: var(--bad); }
+
+/* header: rep name doubles as a Switch-rep control — persistent affordance so
+   it reads as tappable on a touchscreen (no hover), with a real hit area. */
+.rep--switch {
+  appearance: none; cursor: pointer;
+  background: none; border: 0; padding: 6px 8px; min-height: 44px;
+  display: inline-flex; align-items: center; gap: 6px;
+  color: var(--ink); font: inherit;
+  border-bottom: 1px dotted var(--bronze);
+}
+.rep--switch::after {
+  content: "⇄"; color: var(--bronze); font-size: 0.9em; font-weight: 700;
+}
+.rep--switch:hover { border-bottom-style: solid; color: var(--bronze-dark); }
+.rep--switch:active { opacity: 0.7; }
+
+/* ---- Server-backed certification quiz additions (finding #10) ---- */
+.quiz-start { padding: 18px 0; }
+.quiz-start .sub { margin-top: 8px; }
+.missed-topics { margin: 10px 0 0 18px; }
+.missed-topics li { margin: 4px 0; }

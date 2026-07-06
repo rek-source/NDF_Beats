@@ -110,11 +110,16 @@ function buildTargets(total = 600) {
       value_cents,
       home_age,
       owner_occupied,
+      // Synthetic demo world: values are intentionally "verified" so the
+      // compliance gate behaves like a fully-enriched dataset.
+      owner_occupied_known: 1,
       tenure_years,
       recently_sold,
       income_band,
       score,
       no_soliciting,
+      solicit_status: no_soliciting ? 'do_not_solicit' : 'clear',
+      known_signals: JSON.stringify(['value', 'home_age', 'owner_occupied', 'tenure', 'recently_sold', 'income_band']),
     });
   }
   return targets;

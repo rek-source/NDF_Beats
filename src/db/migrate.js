@@ -20,6 +20,14 @@ const ADDITIVE_COLUMNS = [
   ['reps', 'pin_attempts', 'INTEGER NOT NULL DEFAULT 0'],
   ['reps', 'pin_locked_until', 'TEXT'],
   ['reps', 'token_version', 'INTEGER NOT NULL DEFAULT 1'],
+  // Data honesty + compliance (2026-07-06). Legacy rows default to UNKNOWN
+  // (owner_occupied_known=0, solicit_status='unknown') because their values
+  // were fabricated fallbacks — re-ingest (cache is free) to re-verify.
+  ['targets', 'owner_occupied_known', 'INTEGER NOT NULL DEFAULT 0'],
+  ['targets', 'solicit_status', "TEXT NOT NULL DEFAULT 'unknown'"],
+  ['targets', 'known_signals', 'TEXT'],
+  // Exploration-budget tag on beat membership.
+  ['beat_targets', 'explore', 'INTEGER NOT NULL DEFAULT 0'],
 ];
 
 /** Add a column only if the table doesn't already have it (idempotent). */
@@ -45,6 +53,10 @@ export function migrate() {
   for (const [table, column, columnDef] of ADDITIVE_COLUMNS) {
     ensureColumn(db, table, column, columnDef);
   }
+  // Data fix: legacy no_soliciting flags become explicit do_not_solicit status.
+  db.exec(
+    "UPDATE targets SET solicit_status='do_not_solicit' WHERE no_soliciting=1 AND solicit_status='unknown'",
+  );
   return db;
 }
 

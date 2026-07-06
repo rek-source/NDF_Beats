@@ -143,13 +143,39 @@ export function insertTarget(t) {
       `INSERT INTO targets
          (id, address, city, county, zip, lat, lng, value_cents, home_age,
           owner_occupied, tenure_years, recently_sold, income_band, score,
-          no_soliciting)
+          no_soliciting, owner_occupied_known, solicit_status, known_signals)
        VALUES
          (@id, @address, @city, @county, @zip, @lat, @lng, @value_cents,
           @home_age, @owner_occupied, @tenure_years, @recently_sold,
-          @income_band, @score, @no_soliciting)`,
+          @income_band, @score, @no_soliciting, @owner_occupied_known,
+          @solicit_status, @known_signals)`,
     )
-    .run(t);
+    .run({
+      ...t,
+      // NOT NULL legacy columns take 0 when a datum is UNKNOWN; the truth
+      // lives in known_signals / owner_occupied_known / solicit_status.
+      value_cents: t.value_cents ?? 0,
+      home_age: t.home_age ?? 0,
+      owner_occupied: t.owner_occupied ?? 0,
+      tenure_years: t.tenure_years ?? 0,
+      recently_sold: t.recently_sold ?? 0,
+      income_band: t.income_band ?? 0,
+      no_soliciting: t.no_soliciting ?? 0,
+      owner_occupied_known:
+        t.owner_occupied_known ?? (t.owner_occupied === null || t.owner_occupied === undefined ? 0 : 1),
+      solicit_status: t.solicit_status ?? (t.no_soliciting ? 'do_not_solicit' : 'unknown'),
+      known_signals: t.known_signals ?? null,
+    });
+}
+
+/** Overwrite a target's score (profile-approval re-scoring). Rows changed. */
+export function updateTargetScore(targetId, score) {
+  return getDb().prepare(`UPDATE targets SET score = ? WHERE id = ?`).run(score, targetId).changes;
+}
+
+/** All targets (profile-approval re-scoring reads every row). */
+export function listAllTargets() {
+  return getDb().prepare(`SELECT * FROM targets`).all();
 }
 
 export function getTargetById(targetId) {
@@ -191,10 +217,10 @@ export function insertBeat(b) {
 export function insertBeatTarget(row) {
   getDb()
     .prepare(
-      `INSERT INTO beat_targets (beat_id, target_id, seq)
-       VALUES (@beat_id, @target_id, @seq)`,
+      `INSERT INTO beat_targets (beat_id, target_id, seq, explore)
+       VALUES (@beat_id, @target_id, @seq, @explore)`,
     )
-    .run(row);
+    .run({ ...row, explore: row.explore ?? 0 });
 }
 
 export function getBeatById(beatId) {
@@ -228,10 +254,11 @@ export function getBeatTargets(beatId) {
   return getDb()
     .prepare(
       `SELECT
-         bt.seq,
+         bt.seq, bt.explore,
          t.id, t.address, t.city, t.zip, t.lat, t.lng,
          t.value_cents, t.home_age, t.owner_occupied, t.tenure_years,
-         t.score, t.no_soliciting,
+         t.score, t.no_soliciting, t.owner_occupied_known, t.solicit_status,
+         t.known_signals,
          (SELECT k.disposition
             FROM knocks k
            WHERE k.beat_id = bt.beat_id AND k.target_id = t.id
@@ -337,7 +364,8 @@ export function listKnocksWithSignals() {
       `SELECT
          k.id, k.disposition, k.target_id,
          t.value_cents, t.home_age, t.owner_occupied,
-         t.tenure_years, t.recently_sold, t.income_band
+         t.tenure_years, t.recently_sold, t.income_band,
+         t.owner_occupied_known, t.known_signals
        FROM knocks k
        JOIN targets t ON t.id = k.target_id`,
     )
@@ -526,6 +554,149 @@ export function packageCountsByRep(fromUtc, toUtc) {
 }
 
 // ---------------------------------------------------------------------------
+// Ideal-Client Profiles (finding #12: versioned + persisted, not display-only)
+// ---------------------------------------------------------------------------
+
+/**
+ * Persist a profile as the new ACTIVE version (deactivates all others).
+ * @param {Object} p - { id, version, label, profile (object), learned (object|null), approved_by }
+ */
+export function saveIcpProfile(p) {
+  const db = getDb();
+  db.prepare(`UPDATE icp_profiles SET active = 0 WHERE active = 1`).run();
+  db.prepare(
+    `INSERT INTO icp_profiles (id, version, label, profile_json, learned_json, approved_by, active)
+     VALUES (@id, @version, @label, @profile_json, @learned_json, @approved_by, 1)`,
+  ).run({
+    id: p.id,
+    version: p.version,
+    label: p.label,
+    profile_json: JSON.stringify(p.profile),
+    learned_json: p.learned ? JSON.stringify(p.learned) : null,
+    approved_by: p.approved_by ?? null,
+  });
+}
+
+/** The active persisted profile (parsed), or null when none was approved yet. */
+export function getActiveIcpProfile() {
+  const row = getDb().prepare(`SELECT * FROM icp_profiles WHERE active = 1 ORDER BY version DESC LIMIT 1`).get();
+  if (!row) return null;
+  return {
+    id: row.id,
+    version: row.version,
+    label: row.label,
+    profile: JSON.parse(row.profile_json),
+    learned: row.learned_json ? JSON.parse(row.learned_json) : null,
+    approved_by: row.approved_by,
+    created_at: row.created_at,
+  };
+}
+
+/** Version history (newest first) for the manager portal. */
+export function listIcpProfiles() {
+  return getDb()
+    .prepare(`SELECT id, version, label, approved_by, active, created_at FROM icp_profiles ORDER BY version DESC`)
+    .all();
+}
+
+// ---------------------------------------------------------------------------
+// Beat rebuild support (profile approval re-clusters unstarted beats).
+// ---------------------------------------------------------------------------
+
+/** Beats annotated with their knock count (in-flight beats are preserved). */
+export function listBeatsWithKnockCounts() {
+  return getDb()
+    .prepare(
+      `SELECT b.*, (SELECT COUNT(*) FROM knocks k WHERE k.beat_id = b.id) AS knock_count
+       FROM beats b`,
+    )
+    .all();
+}
+
+/** Delete a beat (beat_targets cascade). Refuses beats with knock history. */
+export function deleteBeatIfUnknocked(beatId) {
+  const db = getDb();
+  const knocked = db.prepare(`SELECT COUNT(*) AS c FROM knocks WHERE beat_id = ?`).get(beatId).c;
+  if (knocked > 0) return 0;
+  return db.prepare(`DELETE FROM beats WHERE id = ?`).run(beatId).changes;
+}
+
+/** Targets not currently a member of any beat (candidates for re-clustering). */
+export function listTargetsNotInBeats() {
+  return getDb()
+    .prepare(
+      `SELECT t.* FROM targets t
+       WHERE t.id NOT IN (SELECT target_id FROM beat_targets)`,
+    )
+    .all();
+}
+
+// ---------------------------------------------------------------------------
+// Training certifications (finding #10: server-side, keyed to the authed rep)
+// ---------------------------------------------------------------------------
+
+export function insertTrainingAttempt(a) {
+  getDb()
+    .prepare(
+      `INSERT INTO training_attempts (id, rep_id, question_ids, curriculum_version)
+       VALUES (@id, @rep_id, @question_ids, @curriculum_version)`,
+    )
+    .run(a);
+}
+
+export function getTrainingAttempt(id) {
+  return getDb().prepare(`SELECT * FROM training_attempts WHERE id = ?`).get(id) ?? null;
+}
+
+export function markTrainingAttemptGraded(id) {
+  return getDb()
+    .prepare(`UPDATE training_attempts SET graded_at = ? WHERE id = ? AND graded_at IS NULL`)
+    .run(new Date().toISOString(), id).changes;
+}
+
+/** Attempts (graded or open) for a rep in the last `hours` (retake throttle). */
+export function countRecentTrainingAttempts(repId, hours) {
+  const cutoff = new Date(Date.now() - hours * 3600_000).toISOString();
+  return getDb()
+    .prepare(`SELECT COUNT(*) AS c FROM training_attempts WHERE rep_id = ? AND created_at >= ?`)
+    .get(repId, cutoff).c;
+}
+
+export function insertTrainingCert(c) {
+  getDb()
+    .prepare(
+      `INSERT INTO training_certs (id, rep_id, score, total, passed, curriculum_version, attempt_no)
+       VALUES (@id, @rep_id, @score, @total, @passed, @curriculum_version, @attempt_no)`,
+    )
+    .run(c);
+}
+
+/** Latest cert per rep (manager view) / for one rep. */
+export function getLatestCertForRep(repId) {
+  return getDb()
+    .prepare(
+      `SELECT * FROM training_certs WHERE rep_id = ? ORDER BY completed_at DESC, id DESC LIMIT 1`,
+    )
+    .get(repId) ?? null;
+}
+
+export function countCertAttempts(repId, curriculumVersion) {
+  return getDb()
+    .prepare(`SELECT COUNT(*) AS c FROM training_certs WHERE rep_id = ? AND curriculum_version = ?`)
+    .get(repId, curriculumVersion).c;
+}
+
+export function listCertsWithReps() {
+  return getDb()
+    .prepare(
+      `SELECT tc.*, r.name AS rep_name, r.email AS rep_email
+       FROM training_certs tc JOIN reps r ON r.id = tc.rep_id
+       ORDER BY tc.completed_at DESC`,
+    )
+    .all();
+}
+
+// ---------------------------------------------------------------------------
 // Transaction helper (used by the seed for fast bulk inserts).
 // ---------------------------------------------------------------------------
 
@@ -544,7 +715,8 @@ export function transaction(fn) {
  */
 export function resetAll() {
   const db = getDb();
-  for (const t of ['sales', 'knocks', 'beat_targets', 'beats', 'targets', 'reps']) {
+  for (const t of ['sales', 'knocks', 'beat_targets', 'beats', 'targets',
+    'training_certs', 'training_attempts', 'reps']) {
     db.prepare(`DELETE FROM ${t}`).run();
   }
 }

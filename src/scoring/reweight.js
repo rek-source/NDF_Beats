@@ -49,18 +49,30 @@ export function updateWeights(knocks, sales, profile) {
     (Array.isArray(sales) ? sales : []).map((s) => s && s.target_id).filter(Boolean),
   );
 
-  // Partition observed sub-scores into sold / not-sold buckets.
+  // Partition observed sub-scores into sold / not-sold buckets. Signals whose
+  // datum is UNKNOWN for a row (sub-score null) are skipped for that row —
+  // we never learn from fabricated values, so each signal keeps its own counts.
   const sumSold = zeroSignals();
   const sumNot = zeroSignals();
+  const cntSold = zeroSignals();
+  const cntNot = zeroSignals();
   let nSold = 0;
   let nNot = 0;
   for (const k of ks) {
     const s = subScores(k, profile);
     if (isSold(k, soldTargetIds)) {
-      for (const key of SIGNAL_KEYS) sumSold[key] += s[key];
+      for (const key of SIGNAL_KEYS) {
+        if (s[key] === null) continue;
+        sumSold[key] += s[key];
+        cntSold[key] += 1;
+      }
       nSold += 1;
     } else {
-      for (const key of SIGNAL_KEYS) sumNot[key] += s[key];
+      for (const key of SIGNAL_KEYS) {
+        if (s[key] === null) continue;
+        sumNot[key] += s[key];
+        cntNot[key] += 1;
+      }
       nNot += 1;
     }
   }
@@ -71,14 +83,15 @@ export function updateWeights(knocks, sales, profile) {
     return profile;
   }
 
-  // Per-signal lift = mean(sold) − mean(not-sold). With no not-sold rows, the
-  // baseline is 0 so lift = mean(sold) (still a valid relative ranking).
+  // Per-signal lift = mean(sold) − mean(not-sold), over the rows where the
+  // signal was KNOWN. A signal with no known sold observations has no lift.
+  // With no known not-sold rows, the baseline is 0 so lift = mean(sold).
   const lift = {};
   let liftSum = 0;
   for (const key of SIGNAL_KEYS) {
-    const meanSold = sumSold[key] / nSold;
-    const meanNot = nNot > 0 ? sumNot[key] / nNot : 0;
-    const l = Math.max(0, meanSold - meanNot);
+    const meanSold = cntSold[key] > 0 ? sumSold[key] / cntSold[key] : 0;
+    const meanNot = cntNot[key] > 0 ? sumNot[key] / cntNot[key] : 0;
+    const l = cntSold[key] > 0 ? Math.max(0, meanSold - meanNot) : 0;
     lift[key] = l;
     liftSum += l;
   }

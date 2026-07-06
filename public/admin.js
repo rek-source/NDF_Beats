@@ -330,7 +330,7 @@
       // data-label drives the <=768px stacked-card reflow (td::before labels).
       return (
         '<tr' + (b.rep_id ? '' : ' class="is-unassigned"') + '>' +
-        '<td class="ad-beat__name" data-label="Beat"><button type="button" class="ad-beat__maplink" data-beat-id="' + escapeHtml(b.id) + '" data-beat-name="' + escapeHtml(b.name) + '" title="View ' + escapeHtml(b.name) + ' on a map">' + escapeHtml(b.name) + ' <span class="ad-beat__mappin" aria-hidden="true">&#9656;</span></button></td>' +
+        '<td class="ad-beat__name" data-label="Beat" title="' + escapeHtml(b.name) + '"><button type="button" class="ad-beat__maplink" data-beat-id="' + escapeHtml(b.id) + '" data-beat-name="' + escapeHtml(b.name) + '" title="View ' + escapeHtml(b.name) + ' on a map">' + escapeHtml(b.name) + ' <span class="ad-beat__mappin" aria-hidden="true">&#9656;</span></button></td>' +
         '<td data-label="City">' + escapeHtml(b.city) + '</td>' +
         '<td class="ad-num" data-label="Doors">' + fmtInt(b.target_count) + '</td>' +
         '<td data-label="Status"><span class="ad-status ad-status--' + escapeHtml(b.status) + '">' + escapeHtml(b.status) + '</span></td>' +

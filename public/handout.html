@@ -132,11 +132,67 @@
     @page{size:letter;margin:0}
   }
 </style>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     OWNER PROOF DATA — the ONLY place real proof gets entered. (finding #3)
+     Every value below is intentionally EMPTY: nothing on this handout is
+     fabricated. Fill each field with REAL data, print, done. Empty fields
+     keep their dashed placeholder and the draft banner stays visible.
+     ════════════════════════════════════════════════════════════════════════ -->
+<script id="proof-config">
+window.NDF_PROOF = {
+  phone: "",              // OWNER: real CallRail tracking number, formatted e.g. "(209) 555-0123"
+  rating: "",             // OWNER: real review rating, e.g. "4.9"
+  review_count: "",       // OWNER: real review count + source, e.g. "312 Google reviews"
+  homeowners_served: "",  // OWNER: real count, e.g. "1,400+"
+  testimonial: {
+    quote: "",            // OWNER: verbatim quote from a REAL member (with permission)
+    name: "",             // OWNER: first name, e.g. "Sandra"
+    city: ""              // OWNER: e.g. "Modesto"
+  },
+  photos: {
+    before_after_1: "",   // OWNER: path/URL to a REAL before/after job photo (no stock)
+    before_after_2: ""    // OWNER: second real photo (back page)
+  },
+  deadline: ""            // OWNER: free-welcome-service reservation deadline, e.g. "Friday, July 10"
+};
+</script>
+<script>
+// Slot filler: pours NDF_PROOF into [data-proof] slots. Empty values leave the
+// dashed placeholder untouched; when EVERY slot is filled the draft banner hides.
+document.addEventListener('DOMContentLoaded', function () {
+  var P = window.NDF_PROOF || {};
+  var missing = 0;
+  function fill(sel, val) {
+    document.querySelectorAll('[data-proof="' + sel + '"]').forEach(function (el) {
+      if (val && String(val).trim()) { el.textContent = val; el.classList.remove('ph'); }
+      else { missing++; }
+    });
+  }
+  fill('phone', P.phone);
+  fill('rating-line', (P.rating && P.review_count) ? ('★ ' + P.rating + ' · ' + P.review_count) : '');
+  fill('served', P.homeowners_served);
+  fill('quote', P.testimonial && P.testimonial.quote);
+  fill('attribution', (P.testimonial && P.testimonial.name) ? (P.testimonial.name + (P.testimonial.city ? ', ' + P.testimonial.city : '')) : '');
+  fill('deadline', P.deadline);
+  [['before_after_1', 'photo-slot-1'], ['before_after_2', 'photo-slot-2']].forEach(function (pair) {
+    var src = P.photos && P.photos[pair[0]];
+    var slot = document.getElementById(pair[1]);
+    if (!slot) return;
+    if (src && String(src).trim()) {
+      slot.innerHTML = '<img src="' + src + '" alt="Real NDF before/after job photo" style="width:100%;height:100%;object-fit:cover">';
+      slot.style.padding = '0';
+    } else { missing++; }
+  });
+  var note = document.querySelector('.note');
+  if (note && missing === 0) note.style.display = 'none';
+});
+</script>
 </head>
 <body>
 
 <div class="note">
-  <b>Rep handout — draft.</b> Placeholders in <span class="ph">dashed bronze</span> need real values: phone, star rating, homeowner count, testimonial, and two before/after photos. Prints double-sided on letter (heavy stock recommended). Print via your browser (⌘/Ctrl-P → double-sided).
+  <b>Rep handout — DRAFT until proof is real.</b> Fill the <code>NDF_PROOF</code> block at the top of this file (phone, rating, review count, homeowner count, testimonial, deadline, two real job photos). Placeholders in <span class="ph">dashed bronze</span> are OWNER slots — nothing here is ever fabricated. This banner disappears automatically when every slot is filled. Prints double-sided on letter (heavy stock recommended).
 </div>
 
 <!-- ============================== FRONT ============================== -->
@@ -144,8 +200,8 @@
   <div class="trust">
     <div class="brandmark">Next Day Fix<span>A KHB Family Company · Licensed GC</span></div>
     <div class="trust-right">
-      <div class="stars">★★★★★ <span class="ph">4.9 · 300+ reviews</span></div>
-      <div style="margin-top:3px">Trusted by <span class="ph">[N]</span> Central Valley homeowners</div>
+      <div class="stars"><span class="ph" data-proof="rating-line">[real rating · review count]</span></div>
+      <div style="margin-top:3px">Trusted by <span class="ph" data-proof="served">[N]</span> Central Valley homeowners</div>
       <div style="margin-top:2px">CSLB&nbsp;#1070537</div>
     </div>
   </div>
@@ -156,8 +212,8 @@
     <p class="lede">One licensed crew becomes your home's team: a whole-home tune-up every year, real handyman hours included, and <b>front of the line every time you call.</b> We compete on licensed-GC quality — never on price.</p>
 
     <div class="hero-row">
-      <div class="photo">
-        <div><b>[ BEFORE / AFTER PHOTO ]</b>real neighbor's pressure-washed driveway or cleaned gutters — no stock photos</div>
+      <div class="photo" id="photo-slot-1">
+        <div><b>[ BEFORE / AFTER PHOTO — OWNER ]</b>real neighbor's pressure-washed driveway or cleaned gutters — no stock photos (set photos.before_after_1)</div>
       </div>
       <ul class="valueeq">
         <li><b>Never chase a handyman again.</b> One number, one trusted team for the dozen little jobs a house needs.</li>
@@ -217,7 +273,7 @@
     <div class="cta-text">
       <span class="go">Start in 2 minutes.</span>
       Your rep can sign you up right now, or call us:
-      <div class="phone"><span class="ph">(209) 555-0100</span></div>
+      <div class="phone"><span class="ph" data-proof="phone">[real CallRail number]</span></div>
     </div>
     <div class="qr">
       <img alt="Scan to learn more" src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=0&data=https%3A%2F%2Fkhbvr.com%2Fgbb%2Fndf%2Fagreements%2Fhome-care-membership.html">
@@ -253,19 +309,24 @@
   <div class="twocol">
     <div class="guarantee">
       <h3>Your no-risk guarantee</h3>
-      <p><b>Love it or leave it.</b> California law gives you until midnight of the <b>third business day</b> to cancel for a full refund — no questions asked. Get your first inspection booked today and still decide with zero risk.</p>
+      <p><b>Love it or leave it.</b> Cancel within <b>3 business days</b> of signing for a <b>full refund</b> — that’s California law, and we state it proudly. After that, cancel anytime with 30 days’ notice and we refund the <b>unused portion of your term, pro-rata — no cancellation fee</b>.</p>
       <p><b>Backed by a licensed GC.</b> Every job carries our workmanship guarantee — if it's not right, we make it right.</p>
     </div>
     <div class="urgency">
       <h3>Why today</h3>
       <p>We're only enrolling <span class="hl">a handful of homes on your street this week</span>, so we can schedule the neighborhood together.</p>
-      <p style="margin-top:6px">Your <span class="hl">free welcome service is reserved through <span class="ph" style="background:#33291d;border-color:var(--bronze-dark);color:#e7c99a">[this Fri]</span></span> — after that, new members start without it.</p>
+      <p style="margin-top:6px">Your <span class="hl">free welcome service is reserved through <span class="ph" data-proof="deadline" style="background:#33291d;border-color:var(--bronze-dark);color:#e7c99a">[OWNER: deadline]</span></span> — after that, new members start without it.</p>
     </div>
   </div>
 
-  <div class="quote">
-    <p>“<span class="ph" style="font-style:normal">Real one-line testimonial from a member — swap in a true quote.</span>”</p>
-    <cite>— <span class="ph" style="font-style:normal">First name, City</span>, NDF member</cite>
+  <div style="display:flex;gap:14px;align-items:stretch;margin-top:16px">
+    <div class="photo" id="photo-slot-2" style="flex:0 0 2.2in;min-height:1.4in">
+      <div><b>[ BEFORE / AFTER PHOTO — OWNER ]</b>second real job photo (set photos.before_after_2)</div>
+    </div>
+    <div class="quote" style="margin-top:0;flex:1">
+      <p>“<span class="ph" style="font-style:normal" data-proof="quote">OWNER: real one-line testimonial from a member — never invented.</span>”</p>
+      <cite>— <span class="ph" style="font-style:normal" data-proof="attribution">First name, City</span>, NDF member</cite>
+    </div>
   </div>
 
   <table class="incl">
@@ -280,11 +341,11 @@
 
   <div class="foot">
     <div class="legal">
-      <b>Next Day Fix — A KHB Family Company.</b> Licensed general contractor, CSLB&nbsp;#1070537 · Central Valley, CA. We compete on licensed-GC quality, never on price. Not insurance or a home warranty. Pricing &amp; included services match your signed membership agreement; the 3-day right to cancel is stated there.
+      <b>Next Day Fix — A KHB Family Company.</b> Licensed general contractor, CSLB&nbsp;#1070537 · Central Valley, CA. We compete on licensed-GC quality, never on price. Not insurance or a home warranty. Pricing &amp; included services match your signed membership agreement. Cancel within 3 business days of signing for a full refund (California law); after that, cancel anytime — unused time refunded pro-rata, no cancellation fee.
     </div>
     <div class="qr">
       <img alt="Scan to learn more" src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=0&data=https%3A%2F%2Fkhbvr.com%2Fgbb%2Fndf%2Fagreements%2Fhome-care-membership.html">
-      <span><span class="ph">(209) 555-0100</span></span>
+      <span><span class="ph" data-proof="phone">[real CallRail number]</span></span>
     </div>
   </div>
 </section>

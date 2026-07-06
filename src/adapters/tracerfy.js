@@ -23,7 +23,6 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 
 import { ROOT_DIR } from '../config.js';
-import { getProperty as getStubProperty } from './tracerly.stub.js';
 
 const API_URL = process.env.TRACERFY_API_URL ?? 'https://tracerfy.com/v1/api/lead-builder/lookup/';
 const API_TOKEN = process.env.TRACERFY_API_TOKEN ?? null;
@@ -69,15 +68,16 @@ function normAddr(s) {
 
 /**
  * Infer owner-occupancy: true when the mailing address matches the property
- * address (owner gets mail at the home). Conservative — defaults to true when
- * the API gives no mailing address (most Central Valley homes are owner-occ).
+ * address (owner gets mail at the home). When the API gives no mailing address
+ * the answer is UNKNOWN (null) — never fabricated 'true'. Unknown doors fail
+ * the hard compliance gate until verified (finding #4).
  */
 function inferOwnerOccupied(propertyAddress, mailing) {
   const m = mailing?.address ?? mailing?.street ?? mailing?.full_address ?? null;
-  if (!m) return true;
+  if (!m) return null;
   const a = normAddr(propertyAddress);
   const b = normAddr(m);
-  if (!a || !b) return true;
+  if (!a || !b) return null;
   // Match on the leading house-number + street token run.
   return b.startsWith(a) || a.startsWith(b) || b.includes(a);
 }
@@ -91,10 +91,10 @@ function tenureFromSaleDate(lastSaleDate) {
   return years < 0 ? 0 : Math.round(years);
 }
 
-/** Sold within ~18 months => recently_sold flag. */
+/** Sold within ~18 months => recently_sold flag; null when the date is unknown. */
 function recentlySold(lastSaleDate) {
   const tenure = tenureFromSaleDate(lastSaleDate);
-  if (tenure == null) return 0;
+  if (tenure == null) return null; // UNKNOWN, not "no"
   return tenure <= 1 ? 1 : 0; // <=1 rounded year ~ within ~18mo
 }
 
@@ -127,15 +127,18 @@ export function mapTracerfyResponse(raw, propertyAddress) {
   const ownerOccupied = inferOwnerOccupied(propertyAddress, raw?.mailing_address);
 
   // DNC / litigator => mark the door no_soliciting (skip it). Any phone flagged
-  // DNC, or a litigator flag, trips it.
+  // DNC, or a litigator flag, trips it. A verified-clean contact check yields
+  // 'clear'; when Tracerfy returned no contacts to check, status stays UNKNOWN.
   const anyDnc = phones.some((p) => p.dnc === true || p.dnc === 1);
   const litigator = raw?.contacts?.litigator === true || raw?.litigator === true;
   const noSoliciting = anyDnc || litigator ? 1 : 0;
+  const solicitStatus = noSoliciting ? 'do_not_solicit' : (phones.length > 0 ? 'clear' : 'unknown');
 
   return {
     hit: raw?.hit !== false,
     owner_name: owner,
-    owner_occupied: ownerOccupied ? 1 : 0,
+    owner_occupied: ownerOccupied === null ? null : (ownerOccupied ? 1 : 0),
+    solicit_status: solicitStatus,
     value_cents: valueCents,
     home_age: homeAge,
     year_built: yearBuilt,
@@ -194,29 +197,34 @@ export async function lookupProperty(q, { allowNetwork = true } = {}) {
     };
   }
 
-  // 2. No token, or network disabled (cap reached) => stub fallback (free).
+  // 2. No token, or network disabled (cap reached) => HONEST UNKNOWNS (free).
+  // We used to substitute the deterministic mock here, but fabricated
+  // owner/tenure/age data poisoned scoring AND compliance (every un-enriched
+  // door looked identical + "safe"). Unknown data now stays unknown: scoring
+  // renormalizes over known signals, and the compliance gate excludes doors
+  // whose owner-occupancy was never verified. (tracerly.stub.js remains for
+  // offline experiments via getStubProperty — never fed into real ingestion.)
   if (!API_TOKEN || !allowNetwork) {
-    const stub = getStubProperty(q.address);
-    const yearBuilt = stub.year_built;
     return {
       data: {
-        hit: true,
-        owner_name: stub.owner_name,
-        owner_occupied: stub.owner_occupied ? 1 : 0,
-        value_cents: null, // value comes from elsewhere in stub mode
-        home_age: Math.max(0, CURRENT_YEAR - yearBuilt),
-        year_built: yearBuilt,
-        tenure_years: stub.tenure_years,
-        recently_sold: 0,
-        no_soliciting: 0,
+        hit: false,
+        owner_name: null,
+        owner_occupied: null,   // UNKNOWN, not fabricated
+        value_cents: null,
+        home_age: null,
+        year_built: null,
+        tenure_years: null,
+        recently_sold: null,
+        no_soliciting: null,    // UNKNOWN — never defaulted to "safe"
+        solicit_status: 'unknown',
         estimated_equity: null,
         equity_percent: null,
         lender_name: null,
         contacts: { phones: [], emails: [], litigator: false, has_contact: false },
-        source: 'tracerly.stub',
+        source: 'unenriched',
       },
       charged: false,
-      source: 'tracerly.stub',
+      source: 'unenriched',
     };
   }
 

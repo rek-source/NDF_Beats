@@ -8,10 +8,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { scoreTarget } from '../src/scoring/scoring.js';
+import { scoreTarget, scoreTargetDetailed, subScores, signalsFromRow } from '../src/scoring/scoring.js';
 import { clusterBeats } from '../src/scoring/beats.js';
 import { updateWeights } from '../src/scoring/reweight.js';
 import { defaultProfile, validateProfile, SIGNAL_KEYS } from '../src/scoring/profile.js';
+import { isKnockEligible, solicitStatusOf, partitionByEligibility } from '../src/scoring/compliance.js';
 
 // ---------------------------------------------------------------------------
 // profile.js
@@ -71,6 +72,131 @@ test('§6.1 owner-occupied is a strong positive (all else equal)', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Unknown-aware scoring (finding #1): data-starved doors must score LOW and
+// unknown signals must never inherit sweet-spot constants.
+// ---------------------------------------------------------------------------
+test('unknown signals yield null sub-scores, never fabricated values', () => {
+  const s = subScores({ value_cents: 45_000_000 }, defaultProfile);
+  assert.equal(s.value, 1);
+  assert.equal(s.home_age, null);
+  assert.equal(s.owner_occupied, null);
+  assert.equal(s.tenure, null);
+  assert.equal(s.recently_sold, null);
+  assert.equal(s.income_band, null);
+});
+
+test('a fully-unknown door scores 0, not a fabricated sweet-spot 92', () => {
+  assert.equal(scoreTarget({}, defaultProfile), 0);
+  const d = scoreTargetDetailed({}, defaultProfile);
+  assert.equal(d.score, 0);
+  assert.equal(d.coverage, 0);
+  assert.deepEqual(d.known, []);
+});
+
+test('data-starved doors score LOWER than fully-known ideal doors', () => {
+  const ideal = {
+    value_cents: 45_000_000, home_age: 35, owner_occupied: 1,
+    tenure_years: 30, recently_sold: 1, income_band: 6,
+  };
+  const full = scoreTarget(ideal, defaultProfile);
+  const oneSignal = scoreTarget({ income_band: 6 }, defaultProfile);
+  const threeSignals = scoreTarget(
+    { value_cents: 45_000_000, home_age: 35, income_band: 6 }, defaultProfile,
+  );
+  assert.ok(full > threeSignals, `${full} > ${threeSignals}`);
+  assert.ok(threeSignals > oneSignal, `${threeSignals} > ${oneSignal}`);
+  // A single perfect signal can never dominate: capped by its own weight.
+  assert.ok(oneSignal <= Math.round(defaultProfile.weights.income_band * 100));
+});
+
+test('two data-starved doors with different known data do NOT collapse to one score', () => {
+  const a = scoreTarget({ value_cents: 45_000_000, home_age: 35 }, defaultProfile);
+  const b = scoreTarget({ value_cents: 5_000_000, home_age: 2 }, defaultProfile);
+  assert.notEqual(a, b);
+});
+
+test('signalsFromRow nulls signals outside known_signals; legacy owner flag honored', () => {
+  const row = {
+    value_cents: 45_000_000, home_age: 35, owner_occupied: 1, tenure_years: 8,
+    recently_sold: 0, income_band: 5,
+    known_signals: JSON.stringify(['value', 'home_age']),
+  };
+  const s = signalsFromRow(row);
+  assert.equal(s.value_cents, 45_000_000);
+  assert.equal(s.home_age, 35);
+  assert.equal(s.owner_occupied, null);
+  assert.equal(s.tenure_years, null);
+  assert.equal(s.income_band, null);
+
+  // Legacy row (no known_signals): owner_occupied_known=0 -> unknown owner.
+  const legacy = { ...row, known_signals: null, owner_occupied_known: 0 };
+  assert.equal(signalsFromRow(legacy).owner_occupied, null);
+  assert.equal(signalsFromRow(legacy).value_cents, 45_000_000);
+});
+
+// ---------------------------------------------------------------------------
+// Compliance hard gate (finding #4)
+// ---------------------------------------------------------------------------
+test('unknown owner-occupancy is NOT knock-eligible (never default to safe)', () => {
+  assert.equal(isKnockEligible({ owner_occupied: null }), false);
+  assert.equal(isKnockEligible({}), false);
+  assert.equal(isKnockEligible({ owner_occupied: 1, owner_occupied_known: 0 }), false);
+  assert.equal(isKnockEligible({ owner_occupied: 0, owner_occupied_known: 1 }), false);
+  assert.equal(isKnockEligible({ owner_occupied: 1, owner_occupied_known: 1 }), true);
+  assert.equal(isKnockEligible({ owner_occupied: 1 }), true); // explicit in-memory datum
+});
+
+test('any do-not-solicit flag excludes the door regardless of other data', () => {
+  assert.equal(isKnockEligible({ owner_occupied: 1, no_soliciting: 1 }), false);
+  assert.equal(isKnockEligible({ owner_occupied: 1, solicit_status: 'do_not_solicit' }), false);
+  // no_soliciting flag dominates a stale status column
+  assert.equal(solicitStatusOf({ no_soliciting: 1, solicit_status: 'clear' }), 'do_not_solicit');
+  // absence of a flag is UNKNOWN, never 'clear'
+  assert.equal(solicitStatusOf({ no_soliciting: 0 }), 'unknown');
+  assert.equal(solicitStatusOf({}), 'unknown');
+});
+
+test('partitionByEligibility reports why doors were excluded', () => {
+  const { eligible, excluded } = partitionByEligibility([
+    { id: 'a', owner_occupied: 1 },
+    { id: 'b', owner_occupied: null },
+    { id: 'c', owner_occupied: 0 },
+    { id: 'd', owner_occupied: 1, no_soliciting: 1 },
+  ]);
+  assert.deepEqual(eligible.map((t) => t.id), ['a']);
+  assert.deepEqual(excluded, { dnc: 1, ownerUnknown: 1, nonOwner: 1 });
+});
+
+test('§6.2 clusterBeats hard-gates unknown owner-occupancy doors', () => {
+  const targets = gridTargets(120);
+  for (let i = 0; i < 30; i++) targets[i].owner_occupied = null; // unknown
+  const beats = clusterBeats(targets, 50);
+  const included = new Set(beats.flatMap((b) => b.targets.map((t) => t.target_id)));
+  for (let i = 0; i < 30; i++) assert.ok(!included.has(`t${i}`), `t${i} must be excluded`);
+});
+
+// ---------------------------------------------------------------------------
+// Exploration budget (finding #12)
+// ---------------------------------------------------------------------------
+test('explorationFraction promotes a deterministic slice of low-score doors', () => {
+  const targets = gridTargets(160);
+  const a = clusterBeats(targets, 50, { explorationFraction: 0.07 });
+  const b = clusterBeats(targets, 50, { explorationFraction: 0.07 });
+  const flatten = (bs) => bs.flatMap((x) => x.targets);
+  const exploreA = flatten(a).filter((t) => t.explore === 1);
+  assert.ok(exploreA.length >= 1, 'some doors tagged explore');
+  assert.ok(exploreA.length <= Math.ceil(160 * 0.07) + 1, 'budget respected');
+  // Deterministic across runs.
+  assert.deepEqual(
+    flatten(a).map((t) => `${t.target_id}:${t.explore}`),
+    flatten(b).map((t) => `${t.target_id}:${t.explore}`),
+  );
+  // No exploration requested -> no explore tags, original behavior.
+  const none = flatten(clusterBeats(targets, 50));
+  assert.ok(none.every((t) => t.explore === 0));
+});
+
+// ---------------------------------------------------------------------------
 // beats.js
 // ---------------------------------------------------------------------------
 function gridTargets(n) {
@@ -82,6 +208,7 @@ function gridTargets(n) {
       lng: -121.0 + Math.floor(i / 10) * 0.001,
       score: i, // distinct scores
       no_soliciting: i % 25 === 0 ? 1 : 0,
+      owner_occupied: 1, // verified (the hard gate excludes unknown/false)
       city: 'Modesto',
       county: 'Stanislaus',
     });

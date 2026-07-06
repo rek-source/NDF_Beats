@@ -2,7 +2,9 @@
 // Pure + deterministic given input order. No DB/HTTP/randomness.
 //
 // Approach:
-//   1. Drop no_soliciting targets.
+//   1. Drop ineligible targets via the HARD compliance gate (compliance.js):
+//      any do-not-solicit flag OR unverified/false owner-occupancy excludes a
+//      door — eligibility is never defaulted to "safe to knock".
 //   2. Sort by score desc (prefer higher-score homes), stable on input order.
 //   3. Greedy grow clusters of ~size: seed each cluster from the highest-score
 //      unassigned target, then pull in nearest unassigned neighbors until full.
@@ -12,6 +14,8 @@
 // NOTE: owned by `scoring`. The backend ships a contract-correct implementation
 // so beats exist for the seed/app; body may be replaced without changing the
 // frozen §6.2 signature.
+
+import { isKnockEligible } from './compliance.js';
 
 const EARTH = 6371; // km, for haversine
 
@@ -35,18 +39,36 @@ function clampSize(size) {
   return s;
 }
 
+/** Deterministic 0..1 hash of an id (for the exploration lottery — no RNG). */
+function hash01(id) {
+  let h = 2166136261 >>> 0;
+  const s = String(id);
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  return (h >>> 0) / 4294967296;
+}
+
 /**
  * Cluster targets into walkable beats.
- * @param {Array} targets - rows incl. {id,lat,lng,score,no_soliciting,city,county}
+ * @param {Array} targets - rows incl. {id,lat,lng,score,owner_occupied,
+ *                          solicit_status/no_soliciting,city,county}
  * @param {number} size   - desired doors per beat (default 50, clamped 40..60)
+ * @param {Object} [opts]
+ * @param {number} [opts.explorationFraction=0] - 0..0.2: a deterministic slice
+ *        of LOW-score doors gets promoted into the walk-first seeding order so
+ *        the adaptive profile can learn OUTSIDE its current beliefs. Promoted
+ *        members carry `explore: true`.
  * @returns {Array} beats: [{ name, city, county, center:{lat,lng},
- *                            targets:[{target_id, seq}], target_count }]
+ *                            targets:[{target_id, seq, explore}], target_count }]
  */
-export function clusterBeats(targets, size = 50) {
+export function clusterBeats(targets, size = 50, opts = {}) {
   const beatSize = clampSize(size);
+  const exploreFrac = Math.min(0.2, Math.max(0, Number(opts.explorationFraction) || 0));
 
   const pool = targets
-    .filter((t) => !t.no_soliciting)
+    .filter((t) => isKnockEligible(t))
     .map((t) => ({
       id: t.id,
       lat: Number(t.lat),
@@ -54,10 +76,30 @@ export function clusterBeats(targets, size = 50) {
       score: Number(t.score) || 0,
       city: t.city,
       county: t.county,
+      explore: false,
     }));
 
-  // Highest score first; stable for determinism.
-  pool.sort((a, b) => b.score - a.score);
+  // Exploration budget: promote a deterministic ~explorationFraction of the
+  // bottom-half doors to top-quartile seed priority. Their true score is kept;
+  // only the seeding order changes, and they are tagged explore=true.
+  if (exploreFrac > 0 && pool.length >= 8) {
+    const byScore = pool.slice().sort((a, b) => b.score - a.score);
+    const p75 = byScore[Math.floor(byScore.length * 0.25)].score;
+    const bottomHalf = byScore.slice(Math.floor(byScore.length / 2));
+    const budget = Math.max(1, Math.floor(pool.length * exploreFrac));
+    const lottery = bottomHalf
+      .slice()
+      .sort((a, b) => hash01(a.id) - hash01(b.id))
+      .slice(0, budget);
+    for (const t of lottery) {
+      t.explore = true;
+      t._seedScore = p75; // seeding priority only
+    }
+  }
+  for (const t of pool) if (t._seedScore === undefined) t._seedScore = t.score;
+
+  // Highest seed priority first; stable for determinism.
+  pool.sort((a, b) => b._seedScore - a._seedScore);
 
   const assigned = new Set();
   const beats = [];
@@ -103,7 +145,7 @@ export function clusterBeats(targets, size = 50) {
       city,
       county,
       center: { lat: center.lat, lng: center.lng },
-      targets: ordered.map((t, i) => ({ target_id: t.id, seq: i + 1 })),
+      targets: ordered.map((t, i) => ({ target_id: t.id, seq: i + 1, explore: t.explore ? 1 : 0 })),
       target_count: ordered.length,
     };
   });

@@ -366,3 +366,17 @@ this during the Phase 1 promotion.**
   $499; "Sold" links to the existing Care Plan agreement — never re-authored here.
 - Back up before every config edit; validate before every reload; have a rollback
   ready before you start.
+
+---
+
+## Security note — Tracerfy API token (2026-07-06, finding #11)
+
+- The Tracerfy token was found in a **plaintext, group-readable `.env`** in the
+  dev tree. Local perms are now `600`; verify the **prod** `/opt/ndf-beats/.env`
+  is also `chmod 600` and owned by the service user.
+- **[OWNER ACTION] Rotate the Tracerfy API token** in the Tracerfy dashboard and
+  update both `.env` files — treat the old token as exposed: it was **committed
+  to git history** (baseline commit). `.env` is now untracked + gitignored, but
+  the old token remains in history until rotated (rotation, not history rewrite,
+  is the fix).
+- Never commit `.env`; the repo's `.gitignore` must keep excluding it.

@@ -425,7 +425,7 @@
         <div class="module-num">07</div>
         <div>
           <h2>Certification Quiz</h2>
-          <p class="sub">Ten questions. You need 80% (8 of 10) to certify. Graded right here — nothing leaves this device.</p>
+          <p class="sub">Ten questions drawn at random from a larger bank. You need 80% to certify. Graded on the server and recorded to your rep profile — sign in with your PIN to start. Retakes are limited per day.</p>
         </div>
       </div>
 
@@ -445,8 +445,7 @@
         <p class="score-line" id="resultScore"></p>
         <p id="resultMsg"></p>
         <div class="cert" id="certBlock" style="display:none;">
-          <label for="certName">Enter your name to generate your certificate:</label>
-          <input type="text" id="certName" placeholder="Your full name" autocomplete="name">
+          <!-- Certificate identity comes from the SERVER record (the authed rep) — never self-typed. -->
           <p class="cert-print" id="certPrint"></p>
           <button type="button" class="btn secondary" id="printBtn" style="margin-top:12px;">Print / Save certificate</button>
         </div>
@@ -460,6 +459,7 @@
   </main>
 </div>
 
-<script src="training.js"></script>
+<script src="auth.js?v=r4"></script>
+<script src="training.js?v=r5"></script>
 </body>
 </html>

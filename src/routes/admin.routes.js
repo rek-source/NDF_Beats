@@ -23,9 +23,24 @@ import {
   assignBeatToRep,
   targetsDataStatus,
   listKnocksWithSignals,
+  saveIcpProfile,
+  getActiveIcpProfile,
+  listIcpProfiles,
+  listAllTargets,
+  updateTargetScore,
+  listBeatsWithKnockCounts,
+  deleteBeatIfUnknocked,
+  listTargetsNotInBeats,
+  insertBeat,
+  insertBeatTarget,
+  listCertsWithReps,
+  transaction,
 } from '../db/repo.js';
-import { defaultProfile, SIGNAL_KEYS } from '../scoring/profile.js';
+import { defaultProfile, SIGNAL_KEYS, validateProfile } from '../scoring/profile.js';
 import { updateWeights } from '../scoring/reweight.js';
+import { scoreTargetDetailed, signalsFromRow } from '../scoring/scoring.js';
+import { clusterBeats } from '../scoring/beats.js';
+import { partitionByEligibility } from '../scoring/compliance.js';
 import { freeAssessorCounties } from '../adapters/assessor.js';
 import { hashPin } from '../auth/pin.js';
 import { injectDevAdminUser, requireAdmin } from '../auth/middleware.js';
@@ -108,22 +123,141 @@ adminRouter.get('/admin/overview', (_req, res) => {
   res.json({ reps, beats, unassigned_count, data });
 });
 
+// Honest (unknown-aware) reweighting input: knock rows with fabricated/unknown
+// signals nulled out via known_signals/owner_occupied_known.
+function knocksForLearning() {
+  return listKnocksWithSignals().map((r) => ({
+    ...signalsFromRow(r),
+    disposition: r.disposition,
+    target_id: r.target_id,
+  }));
+}
+
+// The profile scoring runs on: the persisted, manager-approved version if one
+// exists, else the hand-set default.
+function activeProfile() {
+  const saved = getActiveIcpProfile();
+  if (!saved) return { profile: defaultProfile, persisted: null };
+  try {
+    return { profile: validateProfile(saved.profile), persisted: saved };
+  } catch {
+    return { profile: defaultProfile, persisted: null };
+  }
+}
+
 // ---------------------------------------------------------------------------
-// GET /api/admin/profile — the Ideal-Client Profile: hand-set (default) weights
-// vs the Phase-2 weights LEARNED from real knock/sale outcomes, plus provenance.
+// GET /api/admin/profile — the Ideal-Client Profile: the ACTIVE (persisted)
+// weights vs a fresh Phase-2 learning preview from real knock/sale outcomes,
+// plus provenance. Preview becomes real only via POST /admin/profile/approve.
 // ---------------------------------------------------------------------------
 adminRouter.get('/admin/profile', (_req, res) => {
-  const knocks = listKnocksWithSignals();
-  const learnedProfile = updateWeights(knocks, [], defaultProfile);
-  const learnedDiffers = learnedProfile !== defaultProfile;
+  const { profile, persisted } = activeProfile();
+  const learnedProfile = updateWeights(knocksForLearning(), [], profile);
+  const learnedDiffers = learnedProfile !== profile;
 
   res.json({
     signals: SIGNAL_KEYS.map((key) => ({ key, label: SIGNAL_LABELS[key] })),
     default_weights: { ...defaultProfile.weights },
-    weights: { ...learnedProfile.weights },
+    active_version: persisted ? persisted.version : (defaultProfile.version ?? 1),
+    active_approved_by: persisted ? persisted.approved_by : null,
+    active_weights: { ...profile.weights },
+    weights: { ...learnedProfile.weights }, // learning PREVIEW (not yet applied)
     // null until at least one sale has been observed (nothing to learn yet).
     learned: learnedDiffers ? learnedProfile.learned : null,
+    pending_approval: learnedDiffers,
   });
+});
+
+// GET /api/admin/profile/history — persisted profile versions.
+adminRouter.get('/admin/profile/history', (_req, res) => {
+  res.json({ versions: listIcpProfiles() });
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/admin/profile/approve — finding #12: make learning REAL.
+// Persists the learned profile as the new active version, RE-SCORES every
+// target with it (unknown-aware), and REBUILDS all not-yet-walked beats with a
+// 7% exploration budget. Beats with knock history are preserved (in-flight
+// work + FK integrity); their doors keep their new scores.
+// ---------------------------------------------------------------------------
+const EXPLORATION_FRACTION = 0.07; // 5–10% budget: learn outside current beliefs
+
+adminRouter.post('/admin/profile/approve', (req, res) => {
+  const { profile } = activeProfile();
+  const learnedProfile = updateWeights(knocksForLearning(), [], profile);
+  if (learnedProfile === profile && !req.body?.force) {
+    return res.status(409).json({
+      error: 'nothing new to learn yet (no sales observed or no discriminating signal); pass {"force":true} to re-approve the current profile anyway',
+    });
+  }
+  const toPersist = learnedProfile === profile ? { ...profile } : learnedProfile;
+
+  const summary = transaction(() => {
+    // 1. Persist the new active version.
+    saveIcpProfile({
+      id: `icp_${randomUUID()}`,
+      version: toPersist.version ?? 1,
+      label: toPersist.label ?? 'Ideal-Client Profile',
+      profile: toPersist,
+      learned: toPersist.learned ?? null,
+      approved_by: req.adminUser,
+    });
+
+    // 2. Re-score EVERY target under the approved profile (unknown-aware).
+    let rescored = 0;
+    for (const row of listAllTargets()) {
+      const { score } = scoreTargetDetailed(signalsFromRow(row), toPersist);
+      if (score !== row.score) {
+        updateTargetScore(row.id, score);
+        rescored += 1;
+      }
+    }
+
+    // 3. Rebuild beats that have no knock history yet.
+    let beatsDeleted = 0;
+    let beatsKept = 0;
+    for (const b of listBeatsWithKnockCounts()) {
+      if (b.knock_count > 0) { beatsKept += 1; continue; }
+      beatsDeleted += deleteBeatIfUnknocked(b.id);
+    }
+    const { eligible, excluded } = partitionByEligibility(listTargetsNotInBeats());
+    const pool = eligible.slice().sort((a, b) => b.score - a.score);
+    const rebuilt = clusterBeats(pool, 50, { explorationFraction: EXPLORATION_FRACTION });
+    let explored = 0;
+    for (const b of rebuilt) {
+      const beatId = `beat_${randomUUID()}`;
+      insertBeat({
+        id: beatId, name: b.name, city: b.city, county: b.county,
+        rep_id: null, status: 'ready',
+        center_lat: b.center.lat, center_lng: b.center.lng,
+        target_count: b.target_count,
+      });
+      for (const m of b.targets) {
+        if (m.explore) explored += 1;
+        insertBeatTarget({ beat_id: beatId, target_id: m.target_id, seq: m.seq, explore: m.explore });
+      }
+    }
+
+    return {
+      approved_version: toPersist.version ?? 1,
+      approved_by: req.adminUser,
+      rescored_targets: rescored,
+      beats_kept: beatsKept,
+      beats_deleted: beatsDeleted,
+      beats_rebuilt: rebuilt.length,
+      exploration_doors: explored,
+      excluded,
+    };
+  });
+
+  res.status(201).json(summary);
+});
+
+// ---------------------------------------------------------------------------
+// GET /api/admin/certs — server-recorded training certifications (finding #10).
+// ---------------------------------------------------------------------------
+adminRouter.get('/admin/certs', (_req, res) => {
+  res.json({ certs: listCertsWithReps() });
 });
 
 // ---------------------------------------------------------------------------

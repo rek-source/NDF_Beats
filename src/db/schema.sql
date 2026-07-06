@@ -41,6 +41,13 @@ CREATE TABLE IF NOT EXISTS targets (
   income_band     INTEGER NOT NULL,          -- ACS block-group income decile 1..10 (stub)
   score           INTEGER NOT NULL DEFAULT 0 CHECK (score BETWEEN 0 AND 100),
   no_soliciting   INTEGER NOT NULL DEFAULT 0,-- 0/1 flag, beats skip these
+  -- Data honesty + compliance (finding #1/#4): which signals were REAL at
+  -- ingest, whether owner-occupancy is verified, and the tri-state solicit
+  -- status ('unknown' is never coerced to 'clear').
+  owner_occupied_known INTEGER NOT NULL DEFAULT 0,  -- 1 = verified datum, 0 = unknown/fabricated
+  solicit_status  TEXT NOT NULL DEFAULT 'unknown'
+                    CHECK (solicit_status IN ('unknown','clear','do_not_solicit')),
+  known_signals   TEXT,                      -- JSON array of known signal keys (NULL = legacy row)
   created_at      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
 CREATE INDEX IF NOT EXISTS idx_targets_geo   ON targets(lat,lng);
@@ -67,6 +74,7 @@ CREATE TABLE IF NOT EXISTS beat_targets (
   beat_id     TEXT NOT NULL REFERENCES beats(id) ON DELETE CASCADE,
   target_id   TEXT NOT NULL REFERENCES targets(id),
   seq         INTEGER NOT NULL,              -- 1-based walk order
+  explore     INTEGER NOT NULL DEFAULT 0,    -- 1 = exploration-budget pick (learning, not score)
   PRIMARY KEY (beat_id, target_id)
 );
 CREATE INDEX IF NOT EXISTS idx_beat_targets_seq ON beat_targets(beat_id, seq);
@@ -100,3 +108,43 @@ CREATE TABLE IF NOT EXISTS sales (
   sold_at       TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
 CREATE INDEX IF NOT EXISTS idx_sales_rep_time ON sales(rep_id, sold_at);
+
+-- Versioned Ideal-Client Profiles (finding #12): the learned profile is
+-- PERSISTED on manager approval — not display-only. Exactly one row active.
+CREATE TABLE IF NOT EXISTS icp_profiles (
+  id            TEXT PRIMARY KEY,
+  version       INTEGER NOT NULL,
+  label         TEXT NOT NULL,
+  profile_json  TEXT NOT NULL,               -- full profile (bands + weights)
+  learned_json  TEXT,                        -- provenance (n_sold, alpha, lift)
+  approved_by   TEXT,                        -- manager (X-Auth-User) who approved
+  active        INTEGER NOT NULL DEFAULT 0,  -- 0/1; at most one active
+  created_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+CREATE INDEX IF NOT EXISTS idx_icp_active ON icp_profiles(active);
+
+-- Server-side training certifications (finding #10): completions are recorded
+-- against the AUTHED rep, never self-typed client-side.
+CREATE TABLE IF NOT EXISTS training_certs (
+  id                 TEXT PRIMARY KEY,
+  rep_id             TEXT NOT NULL REFERENCES reps(id),
+  score              INTEGER NOT NULL,        -- correct answers
+  total              INTEGER NOT NULL,        -- questions asked
+  passed             INTEGER NOT NULL,        -- 0/1
+  curriculum_version TEXT NOT NULL,
+  attempt_no         INTEGER NOT NULL,
+  completed_at       TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+CREATE INDEX IF NOT EXISTS idx_training_rep ON training_certs(rep_id, completed_at);
+
+-- Open quiz attempts: the served question set is stored server-side so grading
+-- never trusts (or reveals) the answer key client-side.
+CREATE TABLE IF NOT EXISTS training_attempts (
+  id           TEXT PRIMARY KEY,
+  rep_id       TEXT NOT NULL REFERENCES reps(id),
+  question_ids TEXT NOT NULL,                -- JSON array of served question ids
+  curriculum_version TEXT NOT NULL,
+  created_at   TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  graded_at    TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_training_attempts_rep ON training_attempts(rep_id, created_at);

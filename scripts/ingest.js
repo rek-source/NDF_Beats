@@ -40,12 +40,14 @@ import {
   insertBeat,
   insertBeatTarget,
   listActiveReps,
+  getActiveIcpProfile,
   transaction,
   resetAll,
   tableCounts,
 } from '../src/db/repo.js';
-import { scoreTarget } from '../src/scoring/scoring.js';
+import { scoreTargetDetailed } from '../src/scoring/scoring.js';
 import { clusterBeats } from '../src/scoring/beats.js';
+import { partitionByEligibility } from '../src/scoring/compliance.js';
 import { defaultProfile } from '../src/scoring/profile.js';
 
 import { getCandidateAddresses, countyForCity } from '../src/adapters/addresses.js';
@@ -55,6 +57,10 @@ import { lookupParcel, hasFreeAssessor } from '../src/adapters/assessor.js';
 
 const COST_PER_LOOKUP = 0.2; // USD, per the Tracerfy contract (~$0.20/lookup)
 const STATE = 'CA';
+
+// Score against the manager-approved profile when one is persisted (set after
+// migrate() inside ingest()); falls back to the hand-set default.
+let activeIcpProfile = defaultProfile;
 
 // ─── CLI args ────────────────────────────────────────────────────────────────
 function parseArgs(argv) {
@@ -136,21 +142,26 @@ function round6(n) {
 }
 
 // ─── Build one target row from a candidate address + enrichment ───────────────
+// HONEST DATA ONLY (finding #1/#4): a signal with no real source stays UNKNOWN
+// (null). No sweet-spot constants, no fabricated owner-occupancy, no "safe"
+// compliance default. Scoring renormalizes over the known signals (data-starved
+// doors score LOW), and known_signals/owner_occupied_known/solicit_status
+// persist exactly what was real.
 function buildTarget(addr, county, enrich, demo) {
-  // Value: Tracerfy estimate if present, else a conservative county-median proxy.
-  const value_cents = enrich.value_cents ?? 42_000_000; // ~$420k fallback
-  // Home age: Tracerfy year_built if present, else a neutral 30 yrs.
-  const home_age = enrich.home_age ?? 30;
-  const owner_occupied = enrich.owner_occupied ?? 1;
-  const tenure_years = enrich.tenure_years ?? 8;
-  const recently_sold = enrich.recently_sold ?? 0;
-  const income_band = demo.income_band ?? 5;
-  const no_soliciting = enrich.no_soliciting ?? 0;
+  const value_cents = enrich.value_cents ?? null;
+  const home_age = enrich.home_age ?? null;
+  const owner_occupied = enrich.owner_occupied ?? null;      // null = UNKNOWN
+  const tenure_years = enrich.tenure_years ?? null;
+  const recently_sold = enrich.recently_sold ?? null;
+  // Census income is real only from ACS (keyed); the keyless 'neutral' band is
+  // a fabrication — treat it as unknown.
+  const income_band = demo.source === 'census.acs5' ? (demo.income_band ?? null) : null;
+  const no_soliciting = enrich.no_soliciting ?? null;
+  const solicit_status = enrich.solicit_status
+    ?? (no_soliciting === 1 ? 'do_not_solicit' : no_soliciting === 0 && enrich.source === 'tracerfy' ? 'clear' : 'unknown');
 
-  const score = scoreTarget(
-    { value_cents, home_age, owner_occupied, tenure_years, recently_sold, income_band },
-    defaultProfile,
-  );
+  const signals = { value_cents, home_age, owner_occupied, tenure_years, recently_sold, income_band };
+  const detail = scoreTargetDetailed(signals, activeIcpProfile);
 
   return {
     id: `tgt_${randomUUID()}`,
@@ -163,11 +174,14 @@ function buildTarget(addr, county, enrich, demo) {
     value_cents,
     home_age,
     owner_occupied,
+    owner_occupied_known: owner_occupied === null ? 0 : 1,
     tenure_years,
     recently_sold,
     income_band,
-    score,
-    no_soliciting,
+    score: detail.score,
+    no_soliciting: no_soliciting === 1 ? 1 : 0,
+    solicit_status,
+    known_signals: JSON.stringify(detail.known),
   };
 }
 
@@ -189,6 +203,11 @@ async function ingest() {
   }
 
   migrate(); // idempotent schema
+  const saved = getActiveIcpProfile();
+  if (saved) {
+    activeIcpProfile = saved.profile;
+    console.log(`[profile] scoring with persisted ICP v${saved.version} (approved by ${saved.approved_by ?? 'n/a'})`);
+  }
 
   // 1. FREE — candidate addresses from Overpass, per city.
   const candidates = [];
@@ -305,15 +324,25 @@ async function ingest() {
     }
   }
 
-  // 4. Score is already computed per target. Cluster into beats with the
-  //    EXISTING scoring module (drops no_soliciting, sequences the walk).
-  console.log('\n[scoring] clustering into beats…');
-  const eligible = targets
-    .filter((t) => t.no_soliciting === 0)
-    .slice()
-    .sort((a, b) => b.score - a.score);
+  // 4. Score is already computed per target. Apply the HARD compliance gate
+  //    (verified owner-occupancy + no do-not-solicit flag; unknown ≠ safe),
+  //    then cluster the eligible doors into beats.
+  console.log('\n[scoring] applying compliance gate + clustering into beats…');
+  const { eligible: gated, excluded } = partitionByEligibility(targets);
+  const eligible = gated.slice().sort((a, b) => b.score - a.score);
+  console.log(
+    `  eligibility: ${eligible.length} knockable · excluded ${excluded.dnc} DNC/no-solicit, ` +
+      `${excluded.ownerUnknown} owner-occupancy UNKNOWN (needs enrichment), ${excluded.nonOwner} non-owner-occupied`,
+  );
+  if (eligible.length === 0) {
+    console.log(
+      '  NOTE: no doors passed the compliance gate. Owner-occupancy must be VERIFIED\n' +
+        '  (Tracerfy --max=N enrichment) before doors are beat-eligible — the gate never\n' +
+        '  defaults to "safe to knock". Targets were still ingested and scored.',
+    );
+  }
   const clustered = clusterBeats(eligible, 50);
-  console.log(`  → ${clustered.length} beat(s) from ${eligible.length} solicitable doors`);
+  console.log(`  → ${clustered.length} beat(s) from ${eligible.length} eligible doors`);
 
   // Reps: reuse any existing active reps, else create the default team.
   const existingReps = listActiveReps();
@@ -355,7 +384,7 @@ async function ingest() {
         target_count: b.target_count,
       });
       for (const m of b._members) {
-        insertBeatTarget({ beat_id: b.id, target_id: m.target_id, seq: m.seq });
+        insertBeatTarget({ beat_id: b.id, target_id: m.target_id, seq: m.seq, explore: m.explore ?? 0 });
       }
     }
   });

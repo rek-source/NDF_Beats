@@ -12,6 +12,7 @@ import { salesRouter } from './routes/sales.routes.js';
 import { scoreboardRouter } from './routes/scoreboard.routes.js';
 import { adminRouter } from './routes/admin.routes.js';
 import { authRouter } from './routes/auth.routes.js';
+import { trainingRouter } from './routes/training.routes.js';
 import { requireRepToken } from './auth/middleware.js';
 
 export function createApp() {
@@ -30,6 +31,8 @@ export function createApp() {
   app.use('/api', authRouter);
   app.use('/api/knocks', requireRepToken);
   app.use('/api/sales', requireRepToken);
+  app.use('/api/training', requireRepToken);
+  app.use('/api', trainingRouter);
   app.use('/api', beatsRouter);
   app.use('/api', knocksRouter);
   app.use('/api', salesRouter);
