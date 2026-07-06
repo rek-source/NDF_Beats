@@ -225,6 +225,10 @@ TRACERLY_API_KEY=***
 ZILLOW_API_KEY=***            # or the chosen value-feed key
 CENSUS_API_KEY=***
 NODE_ENV=production
+# REQUIRED in production — the server REFUSES TO BOOT under NODE_ENV=production
+# if this is unset, blank, <32 chars, or the publicly-known dev fallback
+# (fail-closed guard in src/config.js). Generate: openssl rand -hex 32
+BEATS_TOKEN_SECRET=***
 ```
 
 ### 3.3 Start under pm2

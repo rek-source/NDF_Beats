@@ -85,11 +85,64 @@ export function buildAgreementUrl(pkg, targetId) {
 export const MARKET_TIMEZONE = 'America/Los_Angeles';
 
 // ── Rep identity (PIN -> signed token) ──────────────────────────────────────
-// Secret keys the HMAC token. In production it MUST come from .env; the fallback
-// only exists so local dev / tests without a secret still boot (tokens then
-// aren't portable across restarts, which is fine for dev).
-export const BEATS_TOKEN_SECRET =
-  process.env.BEATS_TOKEN_SECRET ?? 'ndf-beats-dev-insecure-secret-change-me';
+// Secret keys the HMAC token. In production it MUST come from the environment
+// (/opt/ndf-beats/.env). The dev fallback only exists so local dev / tests
+// without a secret still boot — it is PUBLICLY KNOWN (it's in this file), so
+// production MUST refuse to boot on it: a missing or misdeployed prod .env
+// would otherwise silently downgrade every rep session token to a secret
+// anyone can forge tokens with.
+
+/** The insecure local-dev fallback. NEVER valid in production. */
+export const DEV_TOKEN_SECRET_FALLBACK = 'ndf-beats-dev-insecure-secret-change-me';
+
+/** Minimum secret length accepted in production (hex from `openssl rand -hex 32` is 64). */
+export const MIN_PROD_SECRET_LENGTH = 32;
+
+/**
+ * Resolve the HMAC token secret, failing CLOSED in production.
+ *
+ * Rules (production = env.NODE_ENV === 'production'):
+ *   - unset/blank secret        -> throw (refuse to boot)
+ *   - the known dev fallback    -> throw (refuse to boot)
+ *   - shorter than 32 chars     -> throw (refuse to boot)
+ * Outside production the dev fallback is used when no secret is set, so local
+ * dev and tests keep working with zero configuration.
+ *
+ * @param {NodeJS.ProcessEnv} [env] - injectable for tests; defaults to process.env
+ * @returns {string} the secret to key rep session tokens with
+ * @throws {Error} in production when no acceptable secret is configured
+ */
+export function resolveTokenSecret(env = process.env) {
+  const raw = typeof env.BEATS_TOKEN_SECRET === 'string' ? env.BEATS_TOKEN_SECRET.trim() : '';
+  const isProduction = env.NODE_ENV === 'production';
+
+  if (isProduction) {
+    if (!raw) {
+      throw new Error(
+        'FATAL: BEATS_TOKEN_SECRET is not set but NODE_ENV=production. ' +
+        'Refusing to boot with the publicly-known dev fallback secret. ' +
+        'Set BEATS_TOKEN_SECRET in /opt/ndf-beats/.env (generate one with: openssl rand -hex 32).'
+      );
+    }
+    if (raw === DEV_TOKEN_SECRET_FALLBACK) {
+      throw new Error(
+        'FATAL: BEATS_TOKEN_SECRET is set to the publicly-known dev fallback while ' +
+        'NODE_ENV=production. Generate a real secret with: openssl rand -hex 32.'
+      );
+    }
+    if (raw.length < MIN_PROD_SECRET_LENGTH) {
+      throw new Error(
+        `FATAL: BEATS_TOKEN_SECRET is too short for production (${raw.length} chars; ` +
+        `minimum ${MIN_PROD_SECRET_LENGTH}). Generate one with: openssl rand -hex 32.`
+      );
+    }
+    return raw;
+  }
+
+  return raw || DEV_TOKEN_SECRET_FALLBACK;
+}
+
+export const BEATS_TOKEN_SECRET = resolveTokenSecret();
 
 /** Session window before a rep must re-enter their PIN (portal-tunable). */
 export const BEATS_SESSION_HOURS = Number.parseFloat(process.env.BEATS_SESSION_HOURS ?? '12');

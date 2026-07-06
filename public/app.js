@@ -433,6 +433,10 @@
     els.sheetNote.value = '';
     showPhase('disp');
     setStatus('');
+    // Re-enable the disposition buttons: logging a door disables them while the
+    // write is in flight, and WITHOUT this reset the next door's sheet opens
+    // with every button dead (caught by test/field-flow-e2e.test.js).
+    setDispButtonsDisabled(false);
     els.scrim.classList.add('open');
 
     refreshMarker(targetId);
