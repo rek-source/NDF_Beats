@@ -195,6 +195,16 @@ test('5.4 POST sale — sold-state gate, server price, 409 dup', async () => {
   assert.equal(sale.json.sale.amount_usd, 300);
   assert.match(sale.json.sale.agreement_url, /home-care-membership\.html\?/);
   assert.match(sale.json.sale.agreement_url, /pkg=preferred/);
+  // Attribution contract: the agreement URL must carry target + sale + rep so
+  // the tracker can reconcile the eventual payment back to this door-knock.
+  {
+    const qs = new URLSearchParams(sale.json.sale.agreement_url.split('?')[1]);
+    assert.equal(qs.get('target'), targets[3].id);
+    assert.equal(qs.get('sale'), sale.json.sale.id);
+    // rep is token-bound (the authed rep who logged the knock), never body-supplied;
+    // the API response deliberately hides rep_id, so assert presence + shape.
+    assert.match(qs.get('rep') ?? '', /^rep_[0-9a-f-]+$/);
+  }
 
   // idempotent replay
   const replay = await authed('POST', '/api/sales', {

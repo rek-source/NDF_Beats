@@ -60,9 +60,14 @@ salesRouter.post('/sales', (req, res) => {
   }
 
   const amount_cents = PACKAGE_CATALOG[pkg].amount_cents; // server-authoritative
-  const agreement_url = buildAgreementUrl(pkg, knock.target_id);
   const ts = normalizeTimestamp(sold_at);
   const id = `sale_${randomUUID()}`;
+  // Carry sale + rep into the URL so the agreements tracker can attribute the
+  // eventual PAYMENT back to this door-knock (commission reconciliation).
+  const agreement_url = buildAgreementUrl(pkg, knock.target_id, {
+    saleId: id,
+    repId: knock.rep_id,
+  });
 
   const saleRow = {
     id,

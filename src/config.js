@@ -72,12 +72,21 @@ export const DISPOSITIONS = Object.freeze([
 
 /**
  * Build the agreement URL opened on a completed sale.
+ *
+ * Attribution contract with the agreements tracker: the page parses
+ * pkg/target/sale/rep from this URL, pre-selects the pitched tier, and posts
+ * them back as ref_* fields on /signup and /subscribe — that is how a paid
+ * membership is reconciled to the door-knock (rep commission + D2D channel
+ * revenue truth). Dropping a param here silently breaks that reconciliation.
  * @param {string} pkg - package key
  * @param {string} targetId - target the sale is tied to
+ * @param {{saleId?: string, repId?: string}} [attribution] - beats sale + rep ids
  * @returns {string}
  */
-export function buildAgreementUrl(pkg, targetId) {
+export function buildAgreementUrl(pkg, targetId, { saleId, repId } = {}) {
   const params = new URLSearchParams({ pkg, target: targetId });
+  if (saleId) params.set('sale', saleId);
+  if (repId) params.set('rep', repId);
   return `${AGREEMENT_URL_BASE}?${params.toString()}`;
 }
 
