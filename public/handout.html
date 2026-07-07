@@ -142,13 +142,14 @@
 <script id="proof-config">
 window.NDF_PROOF = {
   phone: "(209) 764-2055", // NDF main line (Ryan, 2026-07-06). Swap for a CallRail tracking number when provisioned.
-  rating: "",             // OWNER: real review rating, e.g. "4.9"
-  review_count: "",       // OWNER: real review count + source, e.g. "312 Google reviews"
-  homeowners_served: "",  // OWNER: real count, e.g. "1,400+"
+  rating: "5.0",                       // all reviews are 5-star
+  review_count: "75+ five-star reviews", // KHB family (NDF + KHB), 2026-07
+  homeowners_served: "hundreds of",    // honest, no fabricated exact count
   testimonial: {
-    quote: "",            // OWNER: verbatim quote from a REAL member (with permission)
-    name: "",             // OWNER: first name, e.g. "Sandra"
-    city: ""              // OWNER: e.g. "Modesto"
+    // Verbatim from a real 5★ Google review of Next Day Fix.
+    quote: "I couldn't be happier with the work NDF did. Kevin was prompt, very clear and concise about the work being done.",
+    name: "Web K.",       // Google reviewer (confirm preferred reviewer/permission)
+    city: ""              // unknown from Google; add if you have it
   },
   photos: {
     before_after_1: "",   // OWNER: path/URL to a REAL before/after job photo (no stock)
@@ -163,18 +164,35 @@ window.NDF_PROOF = {
 document.addEventListener('DOMContentLoaded', function () {
   var P = window.NDF_PROOF || {};
   var missing = 0;
-  function fill(sel, val) {
+  // REQUIRED core proof — these gate the DRAFT banner.
+  function fillReq(sel, val) {
     document.querySelectorAll('[data-proof="' + sel + '"]').forEach(function (el) {
       if (val && String(val).trim()) { el.textContent = val; el.classList.remove('ph'); }
       else { missing++; }
     });
   }
-  fill('phone', P.phone);
-  fill('rating-line', (P.rating && P.review_count) ? ('★ ' + P.rating + ' · ' + P.review_count) : '');
-  fill('served', P.homeowners_served);
-  fill('quote', P.testimonial && P.testimonial.quote);
-  fill('attribution', (P.testimonial && P.testimonial.name) ? (P.testimonial.name + (P.testimonial.city ? ', ' + P.testimonial.city : '')) : '');
-  fill('deadline', P.deadline);
+  fillReq('phone', P.phone);
+  fillReq('rating-line', (P.rating && P.review_count) ? ('★ ' + P.rating + ' · ' + P.review_count) : '');
+  fillReq('served', P.homeowners_served);
+
+  // OPTIONAL enhancements — shown if supplied, otherwise the element is HIDDEN
+  // (never left as a placeholder), so the handout is usable without them.
+  var quoteVal = P.testimonial && P.testimonial.quote;
+  if (quoteVal && String(quoteVal).trim()) {
+    document.querySelectorAll('[data-proof="quote"]').forEach(function (el) { el.textContent = quoteVal; el.classList.remove('ph'); });
+    var attr = (P.testimonial.name || '') + (P.testimonial.city ? ', ' + P.testimonial.city : '');
+    document.querySelectorAll('[data-proof="attribution"]').forEach(function (el) { el.textContent = attr; el.classList.remove('ph'); });
+  } else {
+    var q = document.querySelector('.quote'); if (q) q.style.display = 'none';
+  }
+
+  // deadline: real value if set, else a true non-fabricated fallback.
+  document.querySelectorAll('[data-proof="deadline"]').forEach(function (el) {
+    if (P.deadline && String(P.deadline).trim()) { el.textContent = P.deadline; el.classList.remove('ph'); }
+    else { el.textContent = 'the homes we visit this week'; el.classList.remove('ph'); el.removeAttribute('style'); }
+  });
+
+  // photos: real image if supplied, else hide the slot and let the row reflow.
   [['before_after_1', 'photo-slot-1'], ['before_after_2', 'photo-slot-2']].forEach(function (pair) {
     var src = P.photos && P.photos[pair[0]];
     var slot = document.getElementById(pair[1]);
@@ -182,8 +200,9 @@ document.addEventListener('DOMContentLoaded', function () {
     if (src && String(src).trim()) {
       slot.innerHTML = '<img src="' + src + '" alt="Real NDF before/after job photo" style="width:100%;height:100%;object-fit:cover">';
       slot.style.padding = '0';
-    } else { missing++; }
+    } else { slot.style.display = 'none'; }
   });
+
   var note = document.querySelector('.note');
   if (note && missing === 0) note.style.display = 'none';
 });
@@ -309,7 +328,7 @@ document.addEventListener('DOMContentLoaded', function () {
   <div class="twocol">
     <div class="guarantee">
       <h3>Your no-risk guarantee</h3>
-      <p><b>Love it or leave it.</b> Cancel within <b>3 business days</b> of signing for a <b>full refund</b> — that’s California law, and we state it proudly. After that, cancel anytime with 30 days’ notice and we refund the <b>unused portion of your term, pro-rata — no cancellation fee</b>.</p>
+      <p><b>Love it or leave it.</b> Cancel within <b>3 business days</b> of signing for a <b>full refund</b> — that’s California law, and we state it proudly. After that there are <b>no refunds</b> — cancel anytime and your membership simply won’t renew.</p>
       <p><b>Backed by a licensed GC.</b> Every job carries our workmanship guarantee — if it's not right, we make it right.</p>
     </div>
     <div class="urgency">
@@ -341,7 +360,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   <div class="foot">
     <div class="legal">
-      <b>Next Day Fix — A KHB Family Company.</b> Licensed general contractor, CSLB&nbsp;#1070537 · Central Valley, CA. We compete on licensed-GC quality, never on price. Not insurance or a home warranty. Pricing &amp; included services match your signed membership agreement. Cancel within 3 business days of signing for a full refund (California law); after that, cancel anytime — unused time refunded pro-rata, no cancellation fee.
+      <b>Next Day Fix — A KHB Family Company.</b> Licensed general contractor, CSLB&nbsp;#1070537 · Central Valley, CA. We compete on licensed-GC quality, never on price. Not insurance or a home warranty. Pricing &amp; included services match your signed membership agreement. Cancel within 3 business days of signing for a full refund (California law); after that there are no refunds — cancel anytime and your membership won’t renew.
     </div>
     <div class="qr">
       <img alt="Scan to learn more" src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=0&data=https%3A%2F%2Fkhbvr.com%2Fgbb%2Fndf%2Fagreements%2Fhome-care-membership.html">
