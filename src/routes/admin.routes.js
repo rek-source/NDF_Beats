@@ -218,6 +218,7 @@ adminRouter.post('/admin/profile/approve', (req, res) => {
     let beatsDeleted = 0;
     let beatsKept = 0;
     for (const b of listBeatsWithKnockCounts()) {
+      if (b.kind !== 'auto') { beatsKept += 1; continue; } // custom + walk-in beats are manager/rep-owned
       if (b.knock_count > 0) { beatsKept += 1; continue; }
       beatsDeleted += deleteBeatIfUnknocked(b.id);
     }

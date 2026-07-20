@@ -99,3 +99,19 @@ test('POST /api/admin/beats assigns the beat when rep_id is passed', async () =>
   });
   assert.equal(missing.status, 400);
 });
+
+test('profile-approval rebuild preserves empty custom + walk-in beats', async () => {
+  const rep = makeRep();
+  const created = await api('POST', '/api/admin/beats', {
+    name: 'Keep Me Custom', city: 'Modesto', county: 'Stanislaus',
+  });
+  assert.equal(created.status, 201);
+  const customId = created.json.beat.id;
+  const walkins = repo.ensureWalkinsBeat(rep);
+
+  const approve = await api('POST', '/api/admin/profile/approve', { force: true });
+  assert.equal(approve.status, 201);
+
+  assert.ok(repo.getBeatById(customId), 'custom beat survives the rebuild');
+  assert.ok(repo.getBeatById(walkins.id), 'walk-in beat survives the rebuild');
+});
