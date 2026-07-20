@@ -28,6 +28,11 @@ const ADDITIVE_COLUMNS = [
   ['targets', 'known_signals', 'TEXT'],
   // Exploration-budget tag on beat membership.
   ['beat_targets', 'explore', 'INTEGER NOT NULL DEFAULT 0'],
+  // New-hire onboarding (2026-07-20): custom/walk-in beats + rep-entered doors.
+  // ALTER TABLE ADD COLUMN can't carry the CHECK on some SQLite builds — the
+  // CHECK lives only in the fresh DDL (same pattern as solicit_status).
+  ['beats', 'kind', "TEXT NOT NULL DEFAULT 'auto'"],
+  ['targets', 'ad_hoc', 'INTEGER NOT NULL DEFAULT 0'],
 ];
 
 /** Add a column only if the table doesn't already have it (idempotent). */

@@ -48,6 +48,7 @@ CREATE TABLE IF NOT EXISTS targets (
   solicit_status  TEXT NOT NULL DEFAULT 'unknown'
                     CHECK (solicit_status IN ('unknown','clear','do_not_solicit')),
   known_signals   TEXT,                      -- JSON array of known signal keys (NULL = legacy row)
+  ad_hoc          INTEGER NOT NULL DEFAULT 0,  -- 1 = rep-entered walk-in door, not ingested/scored
   created_at      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
 CREATE INDEX IF NOT EXISTS idx_targets_geo   ON targets(lat,lng);
@@ -65,6 +66,8 @@ CREATE TABLE IF NOT EXISTS beats (
   center_lat    REAL NOT NULL,
   center_lng    REAL NOT NULL,
   target_count  INTEGER NOT NULL DEFAULT 0,
+  kind          TEXT NOT NULL DEFAULT 'auto'
+                  CHECK (kind IN ('auto','custom','walkins')),
   created_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
 CREATE INDEX IF NOT EXISTS idx_beats_rep ON beats(rep_id);
