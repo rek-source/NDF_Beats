@@ -7,7 +7,7 @@
 // Content is grounded in the live curriculum (training.html), the Home Care
 // Membership agreement, and NDF's California no-discount policy.
 
-export const CURRICULUM_VERSION = '2026-07';
+export const CURRICULUM_VERSION = '2026-07b';
 
 /** Questions served per attempt (drawn from the larger bank). */
 export const QUIZ_SIZE = 10;
@@ -210,6 +210,56 @@ export const QUESTION_BANK = Object.freeze([
       'Photograph the card front and back',
     ],
     answer: 2,
+  },
+  // Onboarding 2026-07-20 (curriculum 2026-07b): field safety + app usage,
+  // grounded in training modules 07 (Field Ops & Safety) and 08 (Using the App).
+  {
+    id: 'q_walkin_log',
+    topic: 'Using the app — walk-ins',
+    q: 'You stop in a nice neighborhood that was not in any beat and knock a few doors. How do you record them?',
+    choices: [
+      'Write them on paper and hope you remember',
+      'Tap "＋ Log a door", type the address, use your location, and log the disposition',
+      'Skip logging — only pre-loaded doors count',
+      'Text the addresses to your manager',
+    ],
+    answer: 1,
+  },
+  {
+    id: 'q_offline',
+    topic: 'Using the app — offline',
+    q: 'You lose cell signal mid-beat. What should you do?',
+    choices: [
+      'Stop knocking until signal returns',
+      'Keep knocking and logging — the app queues everything and syncs when you are back online',
+      'Restart the app to force a connection',
+      'Log the doors twice to be safe',
+    ],
+    answer: 1,
+  },
+  {
+    id: 'q_dog_safety',
+    topic: 'Field safety',
+    q: 'A loose, aggressive dog is in the yard of your next door. The right move is:',
+    choices: [
+      'Knock quickly before it reaches you',
+      'Do not engage — skip the door, log it, and move on',
+      'Try to calm the dog',
+      'Wait in the yard for the owner',
+    ],
+    answer: 1,
+  },
+  {
+    id: 'q_end_of_day',
+    topic: 'Using the app — sync',
+    q: 'Before you finish for the day you should:',
+    choices: [
+      'Close the app immediately',
+      'Confirm there are no pending/unsynced knocks (the app shows a pending count), then report your numbers',
+      'Delete the day’s knocks',
+      'Nothing — it all handles itself',
+    ],
+    answer: 1,
   },
 ]);
 

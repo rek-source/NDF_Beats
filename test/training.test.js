@@ -204,6 +204,21 @@ test('training.html opens with the first-week onboarding roadmap', () => {
   assert.ok(html.indexOf('Your first week') < html.indexOf('id="m1"'), 'roadmap precedes module 01');
 });
 
+test('curriculum 2026-07b: bank covers safety, offline, and walk-in logging', () => {
+  assert.equal(CURRICULUM_VERSION, '2026-07b', 'version bumped for the onboarding modules');
+  assert.ok(QUESTION_BANK.length >= 19, 'bank grew by the 4 new questions');
+  for (const qid of ['q_walkin_log', 'q_offline', 'q_dog_safety', 'q_end_of_day']) {
+    assert.ok(questionById(qid), `${qid} exists in the bank`);
+  }
+  // Frozen shape holds for EVERY question (old and new).
+  for (const q of QUESTION_BANK) {
+    assert.ok(q.id && q.topic && q.q, `${q.id} has id/topic/q`);
+    assert.equal(q.choices.length, 4, `${q.id} has 4 choices`);
+    assert.ok(Number.isInteger(q.answer) && q.answer >= 0 && q.answer < 4,
+      `${q.id} answer is an in-range integer`);
+  }
+});
+
 test('the client bundle no longer contains the answer key', () => {
   const js = fs.readFileSync(path.join(process.cwd(), 'public', 'training.js'), 'utf8');
   assert.ok(!/answer:\s*\d/.test(js), 'training.js must not embed answers');
