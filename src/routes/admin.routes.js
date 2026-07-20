@@ -10,6 +10,7 @@
 
 import { Router } from 'express';
 import { randomUUID } from 'node:crypto';
+import { resolveBeatCenter } from '../config.js';
 import {
   getRepById,
   getRepByEmail,
@@ -351,6 +352,42 @@ adminRouter.post('/admin/reps/:repId/unlock', (req, res) => {
   }
   clearPinAttempts(rep.id);
   res.json({ ok: true, rep: { id: rep.id, name: rep.name, locked: false } });
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/admin/beats — manager creates a named CUSTOM beat (onboarding
+// 2026-07-20). Empty by design: the rep logs each door as they knock it
+// (POST /api/knocks/manual). Optionally assigned to a rep at creation.
+// ---------------------------------------------------------------------------
+const BEAT_COUNTIES = new Set(['Stanislaus', 'San Joaquin', 'Merced']);
+
+adminRouter.post('/admin/beats', (req, res) => {
+  const body = req.body ?? {};
+  const name = typeof body.name === 'string' ? body.name.trim() : '';
+  const city = typeof body.city === 'string' ? body.city.trim() : '';
+  const county = body.county;
+  if (!name) return res.status(400).json({ error: 'name is required' });
+  if (!city) return res.status(400).json({ error: 'city is required' });
+  if (!BEAT_COUNTIES.has(county)) return res.status(400).json({ error: 'invalid county' });
+
+  let rep = null;
+  if (body.rep_id) {
+    rep = getRepById(body.rep_id);
+    if (!rep) return res.status(400).json({ error: 'rep not found' });
+  }
+
+  const center = resolveBeatCenter({ lat: body.lat, lng: body.lng, city, county });
+  const beatId = `beat_${randomUUID()}`;
+  insertBeat({
+    id: beatId, name, city, county, rep_id: rep ? rep.id : null,
+    status: 'ready', center_lat: center.lat, center_lng: center.lng,
+    target_count: 0, kind: 'custom',
+  });
+
+  res.status(201).json({
+    beat: { id: beatId, name, city, county, status: 'ready', target_count: 0,
+      kind: 'custom', rep_id: rep ? rep.id : null, rep_name: rep ? rep.name : null },
+  });
 });
 
 // ---------------------------------------------------------------------------
