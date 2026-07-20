@@ -31,6 +31,7 @@ import {
   updateTargetScore,
   listBeatsWithKnockCounts,
   deleteBeatIfUnknocked,
+  ensureWalkinsBeat,
   listTargetsNotInBeats,
   insertBeat,
   insertBeatTarget,
@@ -294,6 +295,9 @@ adminRouter.post('/admin/reps', (req, res) => {
     }
     throw err;
   }
+
+  // Every rep gets a walk-in beat for off-beat door logging (onboarding 2026-07-20).
+  ensureWalkinsBeat(rep);
 
   res.status(201).json({ rep: shapeRep(rep) });
 });

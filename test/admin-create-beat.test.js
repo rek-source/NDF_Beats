@@ -115,3 +115,13 @@ test('profile-approval rebuild preserves empty custom + walk-in beats', async ()
   assert.ok(repo.getBeatById(customId), 'custom beat survives the rebuild');
   assert.ok(repo.getBeatById(walkins.id), 'walk-in beat survives the rebuild');
 });
+
+test('POST /api/admin/reps auto-creates the new rep\'s walk-in beat', async () => {
+  const r = await api('POST', '/api/admin/reps', {
+    name: 'Fresh Hire', email: `fresh${randomUUID()}@ndf.example`, role: 'rep',
+  });
+  assert.equal(r.status, 201);
+  const wb = repo.getWalkinsBeatForRep(r.json.rep.id);
+  assert.ok(wb, 'new rep has a walk-in beat');
+  assert.equal(wb.kind, 'walkins');
+});
