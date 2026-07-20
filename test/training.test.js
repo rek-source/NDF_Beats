@@ -193,6 +193,17 @@ test('training.html includes module m9 — Using the Beats App (with walk-in log
   assert.match(html, /#m9/, 'TOC links to m9');
 });
 
+test('training.html opens with the first-week onboarding roadmap', () => {
+  const html = fs.readFileSync(path.join(process.cwd(), 'public', 'training.html'), 'utf8');
+  assert.match(html, /Your first week/i, 'roadmap heading present');
+  assert.match(html, /Pass the certification quiz \(80%\+\)/, 'quiz step present');
+  assert.match(html, /Ride-along with a manager/, 'ride-along step present');
+  assert.match(html, /Run your first solo beat/, 'solo beat step present');
+  assert.match(html, /Log every door — even the no-answers/, 'log-everything step present');
+  // The roadmap sits BEFORE module 01.
+  assert.ok(html.indexOf('Your first week') < html.indexOf('id="m1"'), 'roadmap precedes module 01');
+});
+
 test('the client bundle no longer contains the answer key', () => {
   const js = fs.readFileSync(path.join(process.cwd(), 'public', 'training.js'), 'utf8');
   assert.ok(!/answer:\s*\d/.test(js), 'training.js must not embed answers');
