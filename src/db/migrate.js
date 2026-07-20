@@ -3,6 +3,7 @@
 // or directly: `node src/db/migrate.js`.
 
 import fs from 'node:fs';
+import { randomUUID } from 'node:crypto';
 import { SCHEMA_PATH, DB_PATH } from '../config.js';
 import { getDb, closeDb } from './connection.js';
 
@@ -62,6 +63,20 @@ export function migrate() {
   db.exec(
     "UPDATE targets SET solicit_status='do_not_solicit' WHERE no_soliciting=1 AND solicit_status='unknown'",
   );
+  // Backfill: every rep gets exactly one walk-in beat (onboarding 2026-07-20).
+  // Inline SQL (not repo.js) to avoid a circular import with the repo module.
+  const repsNeeding = db
+    .prepare(`SELECT r.id FROM reps r
+              WHERE NOT EXISTS (SELECT 1 FROM beats b
+                                WHERE b.rep_id = r.id AND b.kind = 'walkins')`)
+    .all();
+  const insertWalkins = db.prepare(
+    `INSERT INTO beats (id, name, city, county, rep_id, status, center_lat, center_lng, target_count, kind)
+     VALUES (@id, 'Walk-ins', '—', 'Stanislaus', @rep_id, 'active', 37.6391, -120.9969, 0, 'walkins')`,
+  );
+  for (const r of repsNeeding) {
+    insertWalkins.run({ id: `beat_${randomUUID()}`, rep_id: r.id });
+  }
   return db;
 }
 

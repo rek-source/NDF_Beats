@@ -43,3 +43,16 @@ test('insertBeat persists kind (defaults to auto)', async () => {
     center_lat: 37.6, center_lng: -121.0, target_count: 0 });
   assert.equal(repo.getBeatById(id2).kind, 'auto');
 });
+
+test('migrate backfills a walkins beat for existing reps', async () => {
+  const repo = await import('../src/db/repo.js');
+  const rep = { id: `rep_${randomUUID()}`, name: 'Legacy Rep',
+    email: `legacy${randomUUID()}@ndf.example`, role: 'rep', active: 1 };
+  repo.insertRep(rep);
+  // No walkins beat yet.
+  assert.equal(repo.getWalkinsBeatForRep(rep.id), null);
+  migrate(); // re-run migration
+  const wb = repo.getWalkinsBeatForRep(rep.id);
+  assert.ok(wb, 'walk-in beat created by backfill');
+  assert.equal(wb.kind, 'walkins');
+});
