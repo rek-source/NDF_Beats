@@ -178,6 +178,13 @@ test('manager view lists recorded certs (gated)', async () => {
   assert.equal((await fetch(baseUrl + '/api/admin/certs')).status, 403);
 });
 
+test('training.html includes module m8 — Your First Day: Field Ops & Safety', () => {
+  const html = fs.readFileSync(path.join(process.cwd(), 'public', 'training.html'), 'utf8');
+  assert.match(html, /id="m8"/, 'module m8 section exists');
+  assert.match(html, /Your First Day: Field Ops (&amp;|&) Safety/, 'm8 heading present');
+  assert.match(html, /#m8/, 'TOC links to m8');
+});
+
 test('the client bundle no longer contains the answer key', () => {
   const js = fs.readFileSync(path.join(process.cwd(), 'public', 'training.js'), 'utf8');
   assert.ok(!/answer:\s*\d/.test(js), 'training.js must not embed answers');
