@@ -66,7 +66,8 @@ export function listRepsWithBeatCounts() {
          r.id, r.name, r.email, r.role, r.active,
          (r.pin_hash IS NOT NULL) AS pin_set,
          r.pin_set_at, r.pin_locked_until,
-         (SELECT COUNT(*) FROM beats b WHERE b.rep_id = r.id) AS beat_count
+         (SELECT COUNT(*) FROM beats b
+           WHERE b.rep_id = r.id AND b.kind != 'walkins') AS beat_count
        FROM reps r
        ORDER BY r.name ASC`,
     )
