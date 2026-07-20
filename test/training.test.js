@@ -185,6 +185,14 @@ test('training.html includes module m8 — Your First Day: Field Ops & Safety', 
   assert.match(html, /#m8/, 'TOC links to m8');
 });
 
+test('training.html includes module m9 — Using the Beats App (with walk-in logging)', () => {
+  const html = fs.readFileSync(path.join(process.cwd(), 'public', 'training.html'), 'utf8');
+  assert.match(html, /id="m9"/, 'module m9 section exists');
+  assert.match(html, /Using the Beats App/, 'm9 heading present');
+  assert.match(html, /Log a walk-in/, 'walk-in logging is taught');
+  assert.match(html, /#m9/, 'TOC links to m9');
+});
+
 test('the client bundle no longer contains the answer key', () => {
   const js = fs.readFileSync(path.join(process.cwd(), 'public', 'training.js'), 'utf8');
   assert.ok(!/answer:\s*\d/.test(js), 'training.js must not embed answers');
