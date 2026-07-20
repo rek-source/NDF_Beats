@@ -6,7 +6,7 @@
 
 import { Router } from 'express';
 import { randomUUID } from 'node:crypto';
-import { DISPOSITIONS } from '../config.js';
+import { PACKAGE_CATALOG, PACKAGE_KEYS, DISPOSITIONS, buildAgreementUrl } from '../config.js';
 import {
   getKnockByClientUuid,
   getBeatById,
@@ -14,6 +14,14 @@ import {
   getRepById,
   insertKnock,
   getKnockById,
+  ensureWalkinsBeat,
+  nextSeqForBeat,
+  insertTarget,
+  insertBeatTarget,
+  bumpBeatTargetCount,
+  insertSale,
+  getSaleByKnockId,
+  transaction,
 } from '../db/repo.js';
 
 export const knocksRouter = Router();
@@ -81,6 +89,101 @@ knocksRouter.post('/knocks', (req, res) => {
 
   return res.status(201).json({ knock: shapeKnock(getKnockById(id)) });
 });
+
+// ---------------------------------------------------------------------------
+// POST /api/knocks/manual — walk-in / off-beat door (onboarding 2026-07-20).
+// Creates an HONEST ad-hoc target (score 0, unknown signals — no fabricated
+// data), appends it to the resolved beat (explicit beat_id, else the rep's
+// walk-in beat), logs the knock, and — for a sold door — the sale, preserving
+// the normal agreement/QBO attribution path. Idempotent on client_uuid.
+// ---------------------------------------------------------------------------
+const ALLOWED_COUNTIES = new Set(['Stanislaus', 'San Joaquin', 'Merced']);
+
+knocksRouter.post('/knocks/manual', (req, res) => {
+  const b = req.body ?? {};
+  const rep = getRepById(req.repId);
+  if (!rep) return res.status(400).json({ error: 'rep not found' });
+
+  // Idempotency: replaying a client_uuid returns the existing knock (+ sale).
+  if (b.client_uuid) {
+    const existing = getKnockByClientUuid(b.client_uuid);
+    if (existing) {
+      const sale = getSaleByKnockId(existing.id);
+      return res.status(200).json({
+        knock: shapeKnock(existing),
+        reused: true,
+        sale: sale ? shapeManualSale(sale) : null,
+      });
+    }
+  }
+
+  const address = typeof b.address === 'string' ? b.address.trim() : '';
+  if (!address) return res.status(400).json({ error: 'address is required' });
+  if (!DISPOSITIONS.includes(b.disposition)) {
+    return res.status(400).json({ error: 'invalid disposition' });
+  }
+  if (b.disposition === 'sold' && !PACKAGE_KEYS.includes(b.package)) {
+    return res.status(400).json({ error: 'a valid package is required for a sold door' });
+  }
+
+  // Resolve the target beat: explicit beat, else the rep's walk-in beat.
+  let beat = b.beat_id ? getBeatById(b.beat_id) : null;
+  if (!beat) beat = ensureWalkinsBeat(rep);
+
+  const county = ALLOWED_COUNTIES.has(b.county) ? b.county : beat.county;
+  const safeCounty = ALLOWED_COUNTIES.has(county) ? county : 'Stanislaus';
+  const lat = Number.isFinite(b.lat) ? b.lat : beat.center_lat;
+  const lng = Number.isFinite(b.lng) ? b.lng : beat.center_lng;
+  const ts = normalizeTimestamp(b.knocked_at);
+
+  const out = transaction(() => {
+    const targetId = `target_${randomUUID()}`;
+    insertTarget({
+      id: targetId, address, city: (b.city || beat.city || '—'),
+      county: safeCounty, zip: (b.zip || '00000'),
+      lat, lng, ad_hoc: 1, score: 0,
+      owner_occupied: 0, owner_occupied_known: 0,
+      solicit_status: 'unknown', known_signals: '[]',
+    });
+    insertBeatTarget({ beat_id: beat.id, target_id: targetId, seq: nextSeqForBeat(beat.id) });
+    bumpBeatTargetCount(beat.id, 1);
+
+    const knockId = `knock_${randomUUID()}`;
+    insertKnock({
+      id: knockId, beat_id: beat.id, target_id: targetId, rep_id: rep.id,
+      disposition: b.disposition, answered: b.disposition === 'not_home' ? 0 : 1,
+      note: typeof b.note === 'string' ? b.note : null,
+      client_uuid: b.client_uuid ?? null, knocked_at: ts,
+    });
+
+    let sale = null;
+    if (b.disposition === 'sold') {
+      const saleId = `sale_${randomUUID()}`;
+      const amount_cents = PACKAGE_CATALOG[b.package].amount_cents;
+      const agreement_url = buildAgreementUrl(b.package, targetId, { saleId, repId: rep.id });
+      insertSale({
+        id: saleId, knock_id: knockId, rep_id: rep.id, target_id: targetId,
+        package: b.package, amount_cents, agreement_url,
+        client_uuid: b.sold_client_uuid ?? null, sold_at: ts,
+      });
+      sale = getSaleByKnockId(knockId);
+    }
+    return { knock: getKnockById(knockId), target_id: targetId, sale };
+  });
+
+  res.status(201).json({
+    knock: shapeKnock(out.knock),
+    target: { id: out.target_id, address, city: (b.city || beat.city || '—'),
+              lat, lng, score: 0, ad_hoc: true, beat_id: beat.id },
+    beat: { id: beat.id, name: beat.name, kind: beat.kind },
+    sale: out.sale ? shapeManualSale(out.sale) : null,
+  });
+});
+
+function shapeManualSale(s) {
+  return { id: s.id, package: s.package, amount_usd: Math.round(s.amount_cents) / 100,
+    amount_cents: s.amount_cents, agreement_url: s.agreement_url, sold_at: s.sold_at };
+}
 
 /** Accept a client-supplied ISO timestamp; fall back to server time. */
 function normalizeTimestamp(input) {
