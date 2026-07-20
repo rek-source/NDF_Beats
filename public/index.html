@@ -43,6 +43,7 @@
       </div>
 
       <nav class="topbar__nav">
+        <button class="navlink navlink--logdoor" id="logDoorBtn" type="button" title="Log a door that isn't in the list (walk-in / off-beat)">＋ Log a door</button>
         <a class="navlink" href="scoreboard.html">Scoreboard</a>
         <a class="navlink" href="training.html">Training</a>
         <button class="theme-toggle" id="themeToggle" type="button" title="Toggle sunlight contrast">HC</button>
@@ -118,6 +119,50 @@
       </div>
 
       <div class="sheet__status" id="sheetStatus"></div>
+    </aside>
+  </div>
+
+  <!-- ====================================================== MANUAL DOOR (walk-in) SHEET -->
+  <div class="scrim" id="manualScrim" role="dialog" aria-modal="true" aria-labelledby="manualTitle">
+    <aside class="sheet" id="manualSheet">
+      <div class="sheet__head">
+        <div>
+          <div class="addr-big" id="manualTitle">Log a door</div>
+          <div class="addr-sub" id="manualBeatLabel">—</div>
+        </div>
+        <button class="sheet__close" id="manualClose" type="button" aria-label="Close">×</button>
+      </div>
+
+      <div class="sheet__body">
+        <!-- disposition phase -->
+        <div id="manualPhaseDisp">
+          <p class="sheet__section-label">Address</p>
+          <input class="manual-addr" id="manualAddr" type="text" placeholder="1234 Elm St" autocomplete="off" />
+          <div class="manual-geo-row">
+            <button class="manual-geo" id="manualGeo" type="button">📍 Use my location</button>
+            <span class="manual-geo__msg" id="manualGeoMsg" aria-live="polite"></span>
+          </div>
+
+          <p class="sheet__section-label">Log the door</p>
+          <textarea class="note-field" id="manualNote" placeholder="Optional note (callback time, gate code, dog…)"></textarea>
+          <div class="disp-grid" id="manualDispGrid">
+            <button class="dispbtn dispbtn--not_home"       type="button" data-disp="not_home">Not home</button>
+            <button class="dispbtn dispbtn--refused"        type="button" data-disp="refused">Refused</button>
+            <button class="dispbtn dispbtn--callback"       type="button" data-disp="callback">Callback</button>
+            <button class="dispbtn dispbtn--not_interested" type="button" data-disp="not_interested">Not interested</button>
+            <button class="dispbtn dispbtn--sold"           type="button" data-disp="sold">Sold — pick package</button>
+          </div>
+        </div>
+
+        <!-- package phase -->
+        <div id="manualPhasePkg" hidden>
+          <p class="sheet__section-label">Care Plan — choose a package</p>
+          <div class="pkg-grid" id="manualPkgGrid"></div>
+          <button class="pkg-back" id="manualPkgBack" type="button">← Back to dispositions</button>
+        </div>
+      </div>
+
+      <div class="sheet__status" id="manualStatus"></div>
     </aside>
   </div>
 

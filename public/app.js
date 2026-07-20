@@ -69,7 +69,11 @@
       'scrim', 'sheetAddr', 'sheetSub', 'sheetClose', 'sheetScore', 'sheetFactors',
       'sheetLast', 'phaseDisp', 'phasePkg', 'pkgGrid', 'pkgBack', 'sheetNote',
       'sheetStatus', 'toast', 'curtain', 'curtainSpinner', 'curtainTitle',
-      'curtainMsg', 'curtainSlot', 'scriptToggle', 'scriptPanel', 'scriptChev'
+      'curtainMsg', 'curtainSlot', 'scriptToggle', 'scriptPanel', 'scriptChev',
+      'logDoorBtn', 'manualScrim', 'manualSheet', 'manualBeatLabel', 'manualClose',
+      'manualAddr', 'manualGeo', 'manualGeoMsg', 'manualNote', 'manualPhaseDisp',
+      'manualPhasePkg', 'manualPkgGrid', 'manualPkgBack', 'manualDispGrid',
+      'manualStatus'
     ].forEach(function (id) { els[id] = $(id); });
   }
 
@@ -709,10 +713,9 @@
     });
   }
 
-  function showPackagePicker(targetId, knockId) {
-    setStatus('');
-    showPhase('pkg');
-    els.pkgGrid.innerHTML = '';
+  // Shared package-button builder (door-sheet sold flow + manual/walk-in flow).
+  function buildPkgButtons(grid, onPick) {
+    grid.innerHTML = '';
     PACKAGES.forEach(function (p) {
       var b = document.createElement('button');
       b.type = 'button';
@@ -723,9 +726,15 @@
       left.appendChild(nm); left.appendChild(document.createElement('br')); left.appendChild(sub);
       var price = document.createElement('span'); price.className = 'pkg-price'; price.textContent = p.price;
       b.appendChild(left); b.appendChild(price);
-      b.addEventListener('click', function () { recordSale(targetId, knockId, p); });
-      els.pkgGrid.appendChild(b);
+      b.addEventListener('click', function () { onPick(p); });
+      grid.appendChild(b);
     });
+  }
+
+  function showPackagePicker(targetId, knockId) {
+    setStatus('');
+    showPhase('pkg');
+    buildPkgButtons(els.pkgGrid, function (p) { recordSale(targetId, knockId, p); });
   }
 
   function recordSale(targetId, knockId, pkg) {
@@ -785,6 +794,160 @@
     els.sheetStatus.appendChild(a);
   }
 
+  // ------------------------------------------------------------------ manual door (walk-in / off-beat)
+  // "＋ Log a door" lets the rep record a door that was never pre-loaded: a door
+  // in a manager-created custom beat, or a true off-beat walk-in (logged into
+  // the rep's Walk-ins beat when that beat is open). Posts to /knocks/manual —
+  // the server creates an honest ad-hoc target (score 0, unknown signals), the
+  // knock, and (for sold) the sale in one idempotent call.
+  var manualGeoPos = null; // { lat, lng } captured via "Use my location"
+
+  function openManualSheet() {
+    if (!state.beat) return;
+    manualGeoPos = null;
+    els.manualAddr.value = '';
+    els.manualNote.value = '';
+    els.manualGeoMsg.textContent = '';
+    setManualStatus('');
+    showManualPhase('disp');
+    setManualDispDisabled(false);
+    els.manualBeatLabel.textContent = 'Logs into: ' + state.beat.name;
+    els.manualScrim.classList.add('open');
+    els.manualAddr.focus();
+  }
+
+  function closeManualSheet() {
+    els.manualScrim.classList.remove('open');
+  }
+
+  function showManualPhase(which) {
+    els.manualPhaseDisp.hidden = which !== 'disp';
+    els.manualPhasePkg.hidden = which !== 'pkg';
+  }
+
+  function setManualStatus(msg, kind) {
+    els.manualStatus.textContent = msg || '';
+    els.manualStatus.className = 'sheet__status' + (msg ? ' show' : '') + (kind ? ' ' + kind : '');
+  }
+
+  function setManualDispDisabled(disabled) {
+    els.manualDispGrid.querySelectorAll('.dispbtn').forEach(function (b) { b.disabled = disabled; });
+  }
+
+  function captureLocation() {
+    if (!navigator.geolocation) {
+      setManualStatus('Location unavailable on this device — address alone is enough.');
+      return;
+    }
+    els.manualGeoMsg.textContent = 'Locating…';
+    navigator.geolocation.getCurrentPosition(function (pos) {
+      manualGeoPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      els.manualGeoMsg.textContent = '📍 location captured';
+    }, function () {
+      // Non-fatal: the address alone is enough (server pins to the beat center).
+      manualGeoPos = null;
+      els.manualGeoMsg.textContent = 'No location — address alone is fine.';
+    }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 });
+  }
+
+  function handleManualDisposition(disposition) {
+    var addr = (els.manualAddr.value || '').trim();
+    if (!addr) {
+      setManualStatus('Enter the address first.', 'err');
+      els.manualAddr.focus();
+      return;
+    }
+    if (disposition === 'sold') {
+      showManualPhase('pkg');
+      buildPkgButtons(els.manualPkgGrid, function (p) { submitManualDoor('sold', p); });
+      return;
+    }
+    submitManualDoor(disposition, null);
+  }
+
+  function submitManualDoor(disposition, pkg) {
+    var addr = (els.manualAddr.value || '').trim();
+    if (!addr) { setManualStatus('Enter the address first.', 'err'); return; }
+    var cu = uuid();
+    var body = {
+      beat_id: state.beat.id,
+      address: addr,
+      lat: manualGeoPos ? manualGeoPos.lat : undefined,
+      lng: manualGeoPos ? manualGeoPos.lng : undefined,
+      disposition: disposition,
+      note: (els.manualNote.value || '').trim() || undefined,
+      package: pkg ? pkg.key : undefined,
+      client_uuid: cu,
+      knocked_at: new Date().toISOString()
+    };
+    setManualDispDisabled(true);
+
+    // Optimistic local target: the door appears on the map/list immediately
+    // (applyLocalDisposition-style); the server id replaces the temp id on ack.
+    var center = state.beat.center || { lat: 37.66, lng: -121.03 };
+    var local = {
+      id: 'manual_' + cu,
+      seq: state.targets.length + 1,
+      address: addr,
+      city: state.beat.city === '—' ? '' : state.beat.city,
+      zip: '',
+      lat: manualGeoPos ? manualGeoPos.lat : center.lat,
+      lng: manualGeoPos ? manualGeoPos.lng : center.lng,
+      score: 0,
+      no_soliciting: 0,
+      ad_hoc: true,
+      last_disposition: disposition
+    };
+    renderManualTargetIntoBeat(local);
+
+    OfflineQueue.enqueue('manual', API + '/knocks/manual', body).promise.then(function (resp) {
+      if (resp && resp.target) remapManualTarget(local.id, resp.target);
+      if (resp && resp.sale && resp.sale.agreement_url) {
+        var w = window.open(resp.sale.agreement_url, '_blank', 'noopener');
+        if (!w) toast('Agreement link blocked — reopen from the tracker.', true);
+      }
+    }).catch(function (err) {
+      toast('Queued (will sync): ' + (err.message || ''), true);
+    });
+
+    closeManualSheet();
+    toast(DISP_LABEL[disposition] + ' logged — ' + addr);
+  }
+
+  // Push an (optimistic or server) manual target into beat state and render it.
+  function renderManualTargetIntoBeat(target) {
+    state.targets.push(target);
+    state.targetById[target.id] = target;
+    if (state.map) {
+      var m = L.marker([target.lat, target.lng], { icon: pinHtml(target) }).addTo(state.map);
+      m.on('click', function () { openSheet(target.id); });
+      state.markerById[target.id] = m;
+    }
+    els.listScroll.appendChild(buildRow(target));
+    updateListCount();
+    recomputeKpis();
+  }
+
+  // Swap the optimistic temp id for the server-issued target id in place, so a
+  // later tap on the pin/row opens the real door.
+  function remapManualTarget(tempId, serverTarget) {
+    var t = state.targetById[tempId];
+    if (!t) return;
+    delete state.targetById[tempId];
+    t.id = serverTarget.id;
+    if (serverTarget.lat != null) t.lat = serverTarget.lat;
+    if (serverTarget.lng != null) t.lng = serverTarget.lng;
+    state.targetById[t.id] = t;
+    var m = state.markerById[tempId];
+    if (m) {
+      delete state.markerById[tempId];
+      state.markerById[t.id] = m;
+      m.setLatLng([t.lat, t.lng]);
+    }
+    var row = els.listScroll.querySelector('.row[data-id="' + cssEscape(tempId) + '"]');
+    if (row) row.dataset.id = t.id;
+  }
+
   // ------------------------------------------------------------------ events
   function wireEvents() {
     // Tapping the rep name switches rep (clears the session -> PIN login).
@@ -820,6 +983,28 @@
       setStatus('');
       setDispButtonsDisabled(false);
     });
+
+    // Manual door (walk-in / off-beat) sheet
+    if (els.logDoorBtn) els.logDoorBtn.addEventListener('click', openManualSheet);
+    if (els.manualClose) els.manualClose.addEventListener('click', closeManualSheet);
+    if (els.manualScrim) {
+      els.manualScrim.addEventListener('click', function (e) {
+        if (e.target === els.manualScrim) closeManualSheet();
+      });
+    }
+    if (els.manualGeo) els.manualGeo.addEventListener('click', captureLocation);
+    if (els.manualDispGrid) {
+      els.manualDispGrid.querySelectorAll('.dispbtn').forEach(function (b) {
+        b.addEventListener('click', function () { handleManualDisposition(b.dataset.disp); });
+      });
+    }
+    if (els.manualPkgBack) {
+      els.manualPkgBack.addEventListener('click', function () {
+        showManualPhase('disp');
+        setManualStatus('');
+        setManualDispDisabled(false);
+      });
+    }
   }
 
   // ------------------------------------------------------------------ go

@@ -786,3 +786,40 @@ body { overflow: hidden; }
 }
 .rep--switch:hover { border-bottom-style: solid; color: var(--bronze-dark); }
 .rep--switch:active { opacity: 0.7; }
+
+/* ─── Manual door (walk-in / off-beat) entry — onboarding 2026-07-20 ─────── */
+/* Toolbar button: always visible so an empty custom/walk-in beat can still log. */
+.navlink--logdoor {
+  appearance: none; cursor: pointer; background: none; border: 0;
+  border-left: 1px solid var(--hairline);
+  font-family: var(--font-body);
+  color: var(--bronze-dark); font-weight: 700;
+}
+.navlink--logdoor:hover { background: var(--ivory); }
+
+.manual-addr {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: 16px;
+  padding: 12px;
+  border: 1px solid var(--hairline);
+  background: #fff;
+  color: var(--ink);
+  margin-bottom: 10px;
+}
+.manual-addr:focus { outline: 2px solid var(--bronze-dark); border-color: var(--bronze-dark); }
+
+.manual-geo-row {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 18px;
+}
+.manual-geo {
+  background: none;
+  border: 1px solid var(--bronze);
+  color: var(--bronze-dark);
+  font-family: var(--font-body);
+  font-size: 14px; font-weight: 600;
+  padding: 10px 14px; min-height: 44px;
+  cursor: pointer;
+}
+.manual-geo:hover { background: var(--ivory); }
+.manual-geo__msg { font-size: 13px; font-weight: 600; color: var(--muted); }
