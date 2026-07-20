@@ -110,6 +110,36 @@
         </form>
       </section>
 
+      <!-- ============================ CREATE BEAT ============================ -->
+      <section class="ad-card ad-addbeat">
+        <h2 class="ad-card__title">Create a Beat</h2>
+        <p class="ad-card__hint">A named area to work. No pre-loaded homes &mdash; the rep logs each door as they knock it.</p>
+        <form class="ad-form" id="beat-form" autocomplete="off">
+          <label class="ad-field">
+            <span class="ad-field__lbl">Beat name</span>
+            <input class="ad-input" id="beat-name" name="name" type="text" placeholder="Sylvan Ave — nice area" required />
+          </label>
+          <label class="ad-field">
+            <span class="ad-field__lbl">City</span>
+            <input class="ad-input" id="beat-city" name="city" type="text" placeholder="Modesto" required />
+          </label>
+          <label class="ad-field">
+            <span class="ad-field__lbl">County</span>
+            <select class="ad-input" id="beat-county" name="county">
+              <option value="Stanislaus">Stanislaus</option>
+              <option value="San Joaquin">San Joaquin</option>
+              <option value="Merced">Merced</option>
+            </select>
+          </label>
+          <label class="ad-field">
+            <span class="ad-field__lbl">Assign to</span>
+            <select class="ad-input" id="beat-rep" name="rep_id"><option value="">— Unassigned —</option></select>
+          </label>
+          <button class="ad-btn" id="beat-submit" type="submit">Create Beat</button>
+          <p class="ad-form__msg" id="beat-msg" aria-live="polite"></p>
+        </form>
+      </section>
+
       <!-- ============================ REPS LIST ============================ -->
       <section class="ad-card ad-reps">
         <h2 class="ad-card__title">Team <span class="ad-count" id="rep-count"></span></h2>

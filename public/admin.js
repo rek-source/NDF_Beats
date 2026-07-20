@@ -28,6 +28,13 @@
     els.repMsg = document.getElementById('rep-msg');
     els.repList = document.getElementById('rep-list');
     els.repCount = document.getElementById('rep-count');
+    els.beatForm = document.getElementById('beat-form');
+    els.beatName = document.getElementById('beat-name');
+    els.beatCity = document.getElementById('beat-city');
+    els.beatCounty = document.getElementById('beat-county');
+    els.beatRep = document.getElementById('beat-rep');
+    els.beatSubmit = document.getElementById('beat-submit');
+    els.beatMsg = document.getElementById('beat-msg');
     els.beatsTbody = document.getElementById('beats-tbody');
     els.unassignedPill = document.getElementById('unassigned-pill');
     els.refreshBtn = document.getElementById('refresh-btn');
@@ -203,7 +210,23 @@
     renderDataStatus(data.data || {}, data.unassigned_count || 0);
     renderReps(data.reps || []);
     renderBeats(data.beats || [], data.reps || []);
+    renderBeatRepOptions(data.reps || []);
     renderGeneratedAt();
+  }
+
+  // Populate the Create-a-Beat "Assign to" dropdown from the same reps array
+  // the team list renders (active reps only — don't assign new work to someone
+  // who can't log in). Preserves the current selection across reloads.
+  function renderBeatRepOptions(reps) {
+    if (!els.beatRep) return;
+    var current = els.beatRep.value;
+    var opts = ['<option value="">— Unassigned —</option>'];
+    reps.forEach(function (r) {
+      if (!r.active) return;
+      opts.push('<option value="' + escapeHtml(r.id) + '">' + escapeHtml(r.name) + '</option>');
+    });
+    els.beatRep.innerHTML = opts.join('');
+    if (current) els.beatRep.value = current;
   }
 
   function renderGeneratedAt() {
@@ -367,6 +390,47 @@
       els.repSubmit.disabled = false;
       setRepMsg('Network error: ' + (err && err.message ? err.message : 'unknown'), 'error');
     });
+  }
+
+  // ---- Create a Beat (onboarding 2026-07-20) — mirrors submitRep ----
+  function submitBeat(e) {
+    e.preventDefault();
+    if (els.beatMsg) { els.beatMsg.textContent = ''; els.beatMsg.className = 'ad-form__msg'; }
+    var name = els.beatName.value.trim();
+    var city = els.beatCity.value.trim();
+    var county = els.beatCounty.value;
+    var repId = els.beatRep.value || null;
+    if (!name || !city) {
+      setBeatMsg('Beat name and city are required.', 'error');
+      return;
+    }
+    els.beatSubmit.disabled = true;
+    api('POST', '/admin/beats', { name: name, city: city, county: county, rep_id: repId }).then(function (r) {
+      els.beatSubmit.disabled = false;
+      if (r.status === 201) {
+        setBeatMsg('Created beat ' + name + '.', 'ok');
+        els.beatForm.reset();
+        loadOverview().then(function () { if (els.beatName) els.beatName.focus(); });
+      } else {
+        setBeatMsg((r.json && r.json.error) || ('Failed (HTTP ' + r.status + ')'), 'error');
+      }
+    }).catch(function (err) {
+      els.beatSubmit.disabled = false;
+      setBeatMsg('Network error: ' + (err && err.message ? err.message : 'unknown'), 'error');
+    });
+  }
+
+  var beatMsgTimer = null;
+  function setBeatMsg(msg, kind) {
+    if (!els.beatMsg) return;
+    els.beatMsg.textContent = msg;
+    els.beatMsg.className = 'ad-form__msg is-' + (kind || 'info');
+    if (beatMsgTimer) { clearTimeout(beatMsgTimer); beatMsgTimer = null; }
+    if (kind === 'ok') beatMsgTimer = setTimeout(clearBeatMsg, 4000);
+  }
+  function clearBeatMsg() {
+    if (beatMsgTimer) { clearTimeout(beatMsgTimer); beatMsgTimer = null; }
+    if (els.beatMsg) { els.beatMsg.textContent = ''; els.beatMsg.className = 'ad-form__msg'; }
   }
 
   var repMsgTimer = null;
@@ -682,6 +746,10 @@
     if (els.repForm) {
       els.repForm.addEventListener('submit', submitRep);
       els.repForm.addEventListener('input', clearRepMsg); // clear stale msg on edit
+    }
+    if (els.beatForm) {
+      els.beatForm.addEventListener('submit', submitBeat);
+      els.beatForm.addEventListener('input', clearBeatMsg); // clear stale msg on edit
     }
     if (els.beatsTbody) {
       els.beatsTbody.addEventListener('change', onAssignChange);
