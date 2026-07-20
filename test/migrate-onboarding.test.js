@@ -30,3 +30,16 @@ test('migrate adds beats.kind and targets.ad_hoc with safe defaults', () => {
   const def = db.prepare("PRAGMA table_info(beats)").all().find((c) => c.name === 'kind');
   assert.match(String(def.dflt_value), /auto/);
 });
+
+test('insertBeat persists kind (defaults to auto)', async () => {
+  const repo = await import('../src/db/repo.js');
+  const id = `beat_${randomUUID()}`;
+  repo.insertBeat({ id, name: 'Custom A', city: 'Modesto', county: 'Stanislaus',
+    center_lat: 37.6, center_lng: -121.0, target_count: 0, kind: 'custom' });
+  const row = repo.getBeatById(id);
+  assert.equal(row.kind, 'custom');
+  const id2 = `beat_${randomUUID()}`;
+  repo.insertBeat({ id: id2, name: 'Auto A', city: 'Ceres', county: 'Stanislaus',
+    center_lat: 37.6, center_lng: -121.0, target_count: 0 });
+  assert.equal(repo.getBeatById(id2).kind, 'auto');
+});

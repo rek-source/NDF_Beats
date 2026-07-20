@@ -196,10 +196,10 @@ export function insertBeat(b) {
     .prepare(
       `INSERT INTO beats
          (id, name, city, county, rep_id, status, center_lat, center_lng,
-          target_count)
+          target_count, kind)
        VALUES
          (@id, @name, @city, @county, @rep_id, @status, @center_lat,
-          @center_lng, @target_count)`,
+          @center_lng, @target_count, @kind)`,
     )
     .run({
       id: b.id,
@@ -211,6 +211,7 @@ export function insertBeat(b) {
       center_lat: b.center_lat,
       center_lng: b.center_lng,
       target_count: b.target_count ?? 0,
+      kind: b.kind ?? 'auto',
     });
 }
 
