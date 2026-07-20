@@ -11,6 +11,7 @@
 //  - IDs are caller-supplied (crypto.randomUUID() in the app layer), prefixed
 //    by entity ("beat_", "tgt_", "rep_", "knock_", "sale_") for readability.
 
+import { randomUUID } from 'node:crypto';
 import { getDb } from './connection.js';
 
 // ---------------------------------------------------------------------------
@@ -143,12 +144,13 @@ export function insertTarget(t) {
       `INSERT INTO targets
          (id, address, city, county, zip, lat, lng, value_cents, home_age,
           owner_occupied, tenure_years, recently_sold, income_band, score,
-          no_soliciting, owner_occupied_known, solicit_status, known_signals)
+          no_soliciting, owner_occupied_known, solicit_status, known_signals,
+          ad_hoc)
        VALUES
          (@id, @address, @city, @county, @zip, @lat, @lng, @value_cents,
           @home_age, @owner_occupied, @tenure_years, @recently_sold,
           @income_band, @score, @no_soliciting, @owner_occupied_known,
-          @solicit_status, @known_signals)`,
+          @solicit_status, @known_signals, @ad_hoc)`,
     )
     .run({
       ...t,
@@ -165,6 +167,7 @@ export function insertTarget(t) {
         t.owner_occupied_known ?? (t.owner_occupied === null || t.owner_occupied === undefined ? 0 : 1),
       solicit_status: t.solicit_status ?? (t.no_soliciting ? 'do_not_solicit' : 'unknown'),
       known_signals: t.known_signals ?? null,
+      ad_hoc: t.ad_hoc ?? 0,
     });
 }
 
@@ -226,6 +229,45 @@ export function insertBeatTarget(row) {
 
 export function getBeatById(beatId) {
   return getDb().prepare(`SELECT * FROM beats WHERE id = ?`).get(beatId) ?? null;
+}
+
+/** The (single) walk-in beat for a rep, or null. */
+export function getWalkinsBeatForRep(repId) {
+  return getDb()
+    .prepare(`SELECT * FROM beats WHERE rep_id = ? AND kind = 'walkins' ORDER BY created_at ASC LIMIT 1`)
+    .get(repId) ?? null;
+}
+
+/**
+ * Return the rep's walk-in beat, creating it if absent. Idempotent.
+ * Center defaults to the Modesto market centroid (a walk-in beat has no fixed
+ * geography; the map recenters on the first logged door anyway).
+ * @param {{id:string,name:string}} rep
+ */
+export function ensureWalkinsBeat(rep) {
+  const existing = getWalkinsBeatForRep(rep.id);
+  if (existing) return existing;
+  const id = `beat_${randomUUID()}`;
+  insertBeat({
+    id, name: 'Walk-ins', city: '—', county: 'Stanislaus',
+    rep_id: rep.id, status: 'active',
+    center_lat: 37.6391, center_lng: -120.9969, target_count: 0, kind: 'walkins',
+  });
+  return getBeatById(id);
+}
+
+/** Next 1-based walk sequence for a beat (max(seq)+1, or 1 if empty). */
+export function nextSeqForBeat(beatId) {
+  const row = getDb()
+    .prepare(`SELECT COALESCE(MAX(seq), 0) AS maxseq FROM beat_targets WHERE beat_id = ?`)
+    .get(beatId);
+  return (row?.maxseq ?? 0) + 1;
+}
+
+/** Bump a beat's stored target_count by n (walk-in door added). Rows changed. */
+export function bumpBeatTargetCount(beatId, n = 1) {
+  return getDb().prepare(`UPDATE beats SET target_count = target_count + ? WHERE id = ?`)
+    .run(n, beatId).changes;
 }
 
 /**
