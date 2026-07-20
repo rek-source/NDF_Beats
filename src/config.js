@@ -90,6 +90,39 @@ export function buildAgreementUrl(pkg, targetId, { saleId, repId } = {}) {
   return `${AGREEMENT_URL_BASE}?${params.toString()}`;
 }
 
+/** Approx city centroids for the NDF service area (manager custom beats). */
+export const CITY_CENTERS = Object.freeze({
+  Modesto: { lat: 37.6391, lng: -120.9969 },
+  Ceres: { lat: 37.5949, lng: -120.9577 },
+  Turlock: { lat: 37.4947, lng: -120.8466 },
+  Riverbank: { lat: 37.7361, lng: -120.9355 },
+  Oakdale: { lat: 37.7665, lng: -120.8471 },
+  Patterson: { lat: 37.4716, lng: -121.1297 },
+  Manteca: { lat: 37.7974, lng: -121.2161 },
+  Ripon: { lat: 37.7413, lng: -121.1241 },
+  Stockton: { lat: 37.9577, lng: -121.2908 },
+  Lodi: { lat: 38.1341, lng: -121.2722 },
+  Tracy: { lat: 37.7397, lng: -121.4252 },
+  Merced: { lat: 37.3022, lng: -120.4830 },
+  Atwater: { lat: 37.3477, lng: -120.6091 },
+  Livingston: { lat: 37.3869, lng: -120.7238 },
+});
+
+/** County centroids — final fallback when city is unknown. */
+export const COUNTY_CENTERS = Object.freeze({
+  Stanislaus: { lat: 37.5591, lng: -120.9977 },
+  'San Joaquin': { lat: 37.9349, lng: -121.2713 },
+  Merced: { lat: 37.1899, lng: -120.7120 },
+});
+
+/** Resolve a beat center: explicit pin > city centroid > county centroid. */
+export function resolveBeatCenter({ lat, lng, city, county }) {
+  if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
+  if (city && CITY_CENTERS[city]) return { ...CITY_CENTERS[city] };
+  if (county && COUNTY_CENTERS[county]) return { ...COUNTY_CENTERS[county] };
+  return { lat: 37.5591, lng: -120.9977 }; // Stanislaus fallback
+}
+
 /** Market timezone for scoreboard period windows (SPEC §5.5). */
 export const MARKET_TIMEZONE = 'America/Los_Angeles';
 
