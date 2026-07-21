@@ -7,6 +7,7 @@
 import { Router } from 'express';
 import { randomUUID } from 'node:crypto';
 import { PACKAGE_CATALOG, PACKAGE_KEYS, DISPOSITIONS, buildAgreementUrl } from '../config.js';
+import { geocodeAddress } from '../adapters/geocode.js';
 import {
   getKnockByClientUuid,
   getBeatById,
@@ -99,7 +100,7 @@ knocksRouter.post('/knocks', (req, res) => {
 // ---------------------------------------------------------------------------
 const ALLOWED_COUNTIES = new Set(['Stanislaus', 'San Joaquin', 'Merced']);
 
-knocksRouter.post('/knocks/manual', (req, res) => {
+knocksRouter.post('/knocks/manual', async (req, res) => {
   const b = req.body ?? {};
   const rep = getRepById(req.repId);
   if (!rep) return res.status(400).json({ error: 'rep not found' });
@@ -132,8 +133,22 @@ knocksRouter.post('/knocks/manual', (req, res) => {
 
   const county = ALLOWED_COUNTIES.has(b.county) ? b.county : beat.county;
   const safeCounty = ALLOWED_COUNTIES.has(county) ? county : 'Stanislaus';
-  const lat = Number.isFinite(b.lat) ? b.lat : beat.center_lat;
-  const lng = Number.isFinite(b.lng) ? b.lng : beat.center_lng;
+
+  // Pin accuracy: device GPS wins; otherwise geocode the typed address (free
+  // Census geocoder, never throws); only then fall back to the beat center.
+  let lat = Number.isFinite(b.lat) ? b.lat : null;
+  let lng = Number.isFinite(b.lng) ? b.lng : null;
+  if (lat === null || lng === null) {
+    const city = typeof b.city === 'string' ? b.city.trim() : '';
+    const oneLine = [address, city && city !== '—' ? city : null, 'CA']
+      .filter(Boolean).join(', ');
+    const geo = await geocodeAddress(oneLine);
+    if (geo) ({ lat, lng } = geo);
+  }
+  if (lat === null || lng === null) {
+    lat = beat.center_lat;
+    lng = beat.center_lng;
+  }
   const ts = normalizeTimestamp(b.knocked_at);
 
   const out = transaction(() => {

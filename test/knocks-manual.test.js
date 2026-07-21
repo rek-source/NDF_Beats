@@ -72,6 +72,35 @@ function authed(method, p, body) {
   return api(method, p, body, { authorization: `Bearer ${authToken}` });
 }
 
+// The manual route geocodes typed addresses via the free Census geocoder.
+// Tests must never hit the network: intercept census URLs (default: no match,
+// so the route falls back to the beat center) and pass everything else — our
+// own in-process server — through untouched.
+const realFetch = globalThis.fetch;
+let censusHandler = () => censusResponse({ result: { addressMatches: [] } });
+let censusCalls = [];
+globalThis.fetch = (url, opts) => {
+  const u = String(url);
+  if (u.includes('geocoding.geo.census.gov')) {
+    censusCalls.push(u);
+    return Promise.resolve(censusHandler(u));
+  }
+  return realFetch(url, opts);
+};
+test.after(() => { globalThis.fetch = realFetch; });
+
+function censusResponse(body) {
+  return new Response(JSON.stringify(body), {
+    status: 200, headers: { 'content-type': 'application/json' },
+  });
+}
+
+function censusMatch(lat, lng) {
+  return censusResponse({
+    result: { addressMatches: [{ coordinates: { x: lng, y: lat }, matchedAddress: 'MATCHED' }] },
+  });
+}
+
 function countTargets() {
   return getDb().prepare('SELECT COUNT(*) AS c FROM targets').get().c;
 }
@@ -164,4 +193,52 @@ test('manual knock with explicit beat_id logs into that beat', async () => {
   assert.equal(r.json.beat.id, beatId);
   assert.equal(r.json.beat.kind, 'custom');
   assert.equal(repo.getBeatById(beatId).target_count, 1, 'target_count bumped');
+});
+
+// ---------------------------------------------------------------------------
+// Pin accuracy (Jam 2026-07-21): a walk-in door with no device GPS must be
+// geocoded from its typed address — not stacked on the beat center.
+// ---------------------------------------------------------------------------
+
+test('manual knock with no coords geocodes the typed address', async () => {
+  censusCalls = [];
+  censusHandler = () => censusMatch(37.4947, -120.8466);
+  const r = await authed('POST', '/api/knocks/manual', {
+    address: '1332 Merritt St', city: 'Turlock',
+    disposition: 'not_home', client_uuid: randomUUID(),
+  });
+  assert.equal(r.status, 201);
+  assert.equal(r.json.target.lat, 37.4947);
+  assert.equal(r.json.target.lng, -120.8466);
+  const t = repo.getTargetById(r.json.target.id);
+  assert.equal(t.lat, 37.4947);
+  assert.equal(t.lng, -120.8466);
+  assert.equal(censusCalls.length, 1, 'one geocoder call');
+  assert.ok(censusCalls[0].includes(encodeURIComponent('1332 Merritt St')), 'sends the address');
+  assert.ok(censusCalls[0].includes('Turlock'), 'includes the city for context');
+  censusHandler = () => censusResponse({ result: { addressMatches: [] } });
+});
+
+test('manual knock falls back to the beat center when geocoding finds nothing', async () => {
+  censusCalls = [];
+  const r = await authed('POST', '/api/knocks/manual', {
+    address: 'unmatchable nonsense', disposition: 'not_home', client_uuid: randomUUID(),
+  });
+  assert.equal(r.status, 201);
+  const wb = repo.getWalkinsBeatForRep(rep.id);
+  assert.equal(r.json.target.lat, wb.center_lat);
+  assert.equal(r.json.target.lng, wb.center_lng);
+  assert.equal(censusCalls.length, 1, 'geocoder was consulted');
+});
+
+test('manual knock with device GPS coords skips geocoding entirely', async () => {
+  censusCalls = [];
+  const r = await authed('POST', '/api/knocks/manual', {
+    address: '9 Gps Way', city: 'Modesto', lat: 37.61, lng: -120.95,
+    disposition: 'callback', client_uuid: randomUUID(),
+  });
+  assert.equal(r.status, 201);
+  assert.equal(r.json.target.lat, 37.61);
+  assert.equal(r.json.target.lng, -120.95);
+  assert.equal(censusCalls.length, 0, 'device GPS wins — no geocoder call');
 });
