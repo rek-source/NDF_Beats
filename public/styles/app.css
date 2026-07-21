@@ -51,11 +51,20 @@ body { overflow: hidden; }
   display: flex;
   flex-direction: column;
   justify-content: center;
+  align-items: flex-start;
   padding: 8px 18px;
+  border: 0;
   border-right: 1px solid var(--hairline);
   flex: 1 1 auto;
   min-width: 0;
+  /* it's a button now (in-app beat switcher) — keep the topbar look */
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
 }
+.topbar__beat:hover .beat-name { text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--bronze); }
 .topbar__beat .beat-name {
   font-family: var(--font-display);
   font-size: 17px;
@@ -678,6 +687,13 @@ body { overflow: hidden; }
 .beat-pick .bstat--active { background: var(--bronze); color:#fff; }
 .beat-pick .bstat--ready  { background:#fff; color: var(--ink); }
 .beat-pick .bstat--complete { background: var(--ok); color:#fff; }
+.beat-pick--current { border-left: 6px solid var(--bronze); }
+.beat-pick--keep {
+  justify-content: center;
+  background: var(--ivory);
+  border-style: dashed;
+  font-weight: 600;
+}
 
 /* visually hidden */
 .vh { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }

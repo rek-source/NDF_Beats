@@ -64,7 +64,7 @@
   var els = {};
   function cacheEls() {
     [
-      'app', 'repName', 'beatName', 'beatSub', 'kpiKnocked', 'kpiAnswered', 'kpiSold',
+      'app', 'repName', 'beatSwitch', 'beatName', 'beatSub', 'kpiKnocked', 'kpiAnswered', 'kpiSold',
       'listScroll', 'listCount', 'conn', 'connLabel', 'pending', 'themeToggle',
       'scrim', 'sheetAddr', 'sheetSub', 'sheetClose', 'sheetScore', 'sheetFactors',
       'sheetLast', 'phaseDisp', 'phasePkg', 'pkgGrid', 'pkgBack', 'sheetNote',
@@ -217,13 +217,13 @@
     wrap.className = 'beat-picker';
     state.beats.forEach(function (b) {
       var btn = document.createElement('button');
-      btn.className = 'beat-pick';
+      btn.className = 'beat-pick' + (state.beat && b.id === state.beat.id ? ' beat-pick--current' : '');
       btn.type = 'button';
       var prog = b.progress || { knocked: 0, remaining: b.target_count };
       var left = document.createElement('span');
       var nm = document.createElement('span'); nm.className = 'bn'; nm.textContent = b.name;
       var sub = document.createElement('span'); sub.className = 'bs';
-      sub.textContent = b.city + ' · ' + b.target_count + ' doors · ' + prog.knocked + ' knocked, ' + prog.remaining + ' left';
+      sub.textContent = cityLabel(b.city) + b.target_count + ' doors · ' + prog.knocked + ' knocked, ' + prog.remaining + ' left';
       left.appendChild(nm); left.appendChild(document.createElement('br')); left.appendChild(sub);
       var stat = document.createElement('span');
       stat.className = 'bstat bstat--' + b.status;
@@ -232,7 +232,35 @@
       btn.addEventListener('click', function () { loadBeat(b.id); });
       wrap.appendChild(btn);
     });
+    // Mid-day switch (a beat is already loaded): allow backing out of the picker.
+    if (state.beat) {
+      var keep = document.createElement('button');
+      keep.id = 'beatPickClose';
+      keep.className = 'beat-pick beat-pick--keep';
+      keep.type = 'button';
+      keep.textContent = 'Keep working ' + state.beat.name;
+      keep.addEventListener('click', hideCurtain);
+      wrap.appendChild(keep);
+    }
     els.curtainSlot.appendChild(wrap);
+  }
+
+  /** '—' is the walk-in beats' stored placeholder city — never render it. */
+  function cityLabel(city) {
+    return city && city !== '—' ? city + ' · ' : '';
+  }
+
+  // In-app beat switcher (topbar): refetch the rep's beats so progress counts
+  // are fresh, then reopen the picker — no logout required.
+  function switchBeat() {
+    if (!state.rep) return;
+    return api('/reps/' + encodeURIComponent(state.rep.id) + '/beats').then(function (data) {
+      state.beats = data.beats || [];
+      if (state.beats.length === 0) return;
+      renderBeatPicker();
+    }).catch(function (err) {
+      toast('Failed to load beats: ' + (err.message || 'error'), true);
+    });
   }
 
   function loadBeat(beatId) {
@@ -244,7 +272,7 @@
       state.targets.forEach(function (t) { state.targetById[t.id] = t; });
 
       els.beatName.textContent = state.beat.name;
-      els.beatSub.textContent = state.beat.city + ', ' + state.beat.county + ' · ' + state.beat.status;
+      els.beatSub.textContent = cityLabel(state.beat.city).replace(' · ', ', ') + state.beat.county + ' · ' + state.beat.status;
 
       els.app.hidden = false;
       hideCurtain();
@@ -957,6 +985,7 @@
       });
     }
 
+    els.beatSwitch.addEventListener('click', switchBeat);
     els.sheetClose.addEventListener('click', closeSheet);
     els.scrim.addEventListener('click', function (e) {
       if (e.target === els.scrim) closeSheet();
