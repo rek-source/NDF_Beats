@@ -12,10 +12,17 @@ const { geocodeAddress } = await import('../src/adapters/geocode.js');
 
 const realFetch = globalThis.fetch;
 
-function stubFetch(handler) {
+// Intercept BOTH geocoding providers (Census primary, Nominatim fallback) —
+// tests must never hit the network. Unhandled providers return "no result".
+function stubFetch(census, nominatim) {
   globalThis.fetch = async (url, opts) => {
     const u = String(url);
-    if (u.includes('geocoding.geo.census.gov')) return handler(u, opts);
+    if (u.includes('geocoding.geo.census.gov')) {
+      return census ? census(u, opts) : jsonResponse({ result: { addressMatches: [] } });
+    }
+    if (u.includes('nominatim.openstreetmap.org')) {
+      return nominatim ? nominatim(u, opts) : jsonResponse([]);
+    }
     return realFetch(url, opts);
   };
 }
@@ -86,4 +93,59 @@ test('geocodeAddress rejects non-numeric coordinates from the geocoder', async (
     result: { addressMatches: [{ coordinates: { x: 'nope', y: null }, matchedAddress: 'BAD' }] },
   }));
   assert.equal(await geocodeAddress('1332 Merritt St'), null);
+});
+
+// ---------------------------------------------------------------------------
+// Nominatim fallback: census.gov's WAF rejects requests from datacenter IPs
+// (observed live on the sandbox box, 2026-07-21 — HTTP 200 with an HTML
+// "Request Rejected" body). When Census yields nothing, fall back to OSM
+// Nominatim; when Census answers, Nominatim must never be called.
+// ---------------------------------------------------------------------------
+
+test('geocodeAddress falls back to Nominatim when the Census WAF rejects', async (t) => {
+  t.after(() => { globalThis.fetch = realFetch; });
+  let nominatimUrl = null;
+  stubFetch(
+    () => new Response('<html><head><title>Request Rejected</title></head></html>',
+      { status: 200, headers: { 'content-type': 'text/html' } }),
+    (u) => { nominatimUrl = u; return jsonResponse([
+      { lat: '37.4947', lon: '-120.8466', display_name: '1332, Merritt Street, Turlock, CA' },
+    ]); },
+  );
+  const got = await geocodeAddress('1332 Merritt St Turlock CA');
+  assert.deepEqual(got, {
+    lat: 37.4947, lng: -120.8466, matched: '1332, Merritt Street, Turlock, CA',
+  });
+  assert.ok(nominatimUrl.includes(encodeURIComponent('1332 Merritt St Turlock CA')),
+    'nominatim got the typed address');
+});
+
+test('geocodeAddress does not call Nominatim when Census matches', async (t) => {
+  t.after(() => { globalThis.fetch = realFetch; });
+  let nominatimCalls = 0;
+  stubFetch(
+    () => jsonResponse(censusMatch(37.5, -120.9, 'CENSUS MATCH')),
+    () => { nominatimCalls++; return jsonResponse([]); },
+  );
+  const got = await geocodeAddress('1332 Merritt St');
+  assert.equal(got.matched, 'CENSUS MATCH');
+  assert.equal(nominatimCalls, 0, 'census answered — no fallback call');
+});
+
+test('geocodeAddress returns null when both providers come up empty', async (t) => {
+  t.after(() => { globalThis.fetch = realFetch; });
+  stubFetch(
+    () => jsonResponse({ result: { addressMatches: [] } }),
+    () => jsonResponse([]),
+  );
+  assert.equal(await geocodeAddress('nowhere'), null);
+});
+
+test('geocodeAddress rejects junk Nominatim coordinates', async (t) => {
+  t.after(() => { globalThis.fetch = realFetch; });
+  stubFetch(
+    () => jsonResponse({ result: { addressMatches: [] } }),
+    () => jsonResponse([{ lat: 'junk', lon: null, display_name: 'BAD' }]),
+  );
+  assert.equal(await geocodeAddress('1 Bad St'), null);
 });

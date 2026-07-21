@@ -85,6 +85,11 @@ globalThis.fetch = (url, opts) => {
     censusCalls.push(u);
     return Promise.resolve(censusHandler(u));
   }
+  if (u.includes('nominatim.openstreetmap.org')) {
+    // Fallback provider: count it as a geocoder consult, return "no result".
+    censusCalls.push(u);
+    return Promise.resolve(censusResponse([]));
+  }
   return realFetch(url, opts);
 };
 test.after(() => { globalThis.fetch = realFetch; });
@@ -228,7 +233,7 @@ test('manual knock falls back to the beat center when geocoding finds nothing', 
   const wb = repo.getWalkinsBeatForRep(rep.id);
   assert.equal(r.json.target.lat, wb.center_lat);
   assert.equal(r.json.target.lng, wb.center_lng);
-  assert.equal(censusCalls.length, 1, 'geocoder was consulted');
+  assert.ok(censusCalls.length >= 1, 'geocoder was consulted (census + nominatim fallback)');
 });
 
 test('manual knock with device GPS coords skips geocoding entirely', async () => {
