@@ -20,7 +20,7 @@
   <!-- Brand tokens (frozen) + app layout. ?v= busts Caddy's 4h asset cache on
        each deploy (index.html itself is served no-cache, so new links apply at once). -->
   <link rel="stylesheet" href="styles/tokens.css?v=r3" />
-  <link rel="stylesheet" href="styles/app.css?v=r6" />
+  <link rel="stylesheet" href="styles/app.css?v=r7" />
 </head>
 <body>
   <div id="app" hidden>
@@ -137,7 +137,8 @@
         <!-- disposition phase -->
         <div id="manualPhaseDisp">
           <p class="sheet__section-label">Address</p>
-          <input class="manual-addr" id="manualAddr" type="text" placeholder="1234 Elm St" autocomplete="off" />
+          <input class="manual-addr" id="manualAddr" type="text" placeholder="Start typing — e.g. 1332 Merr…" autocomplete="off" />
+          <div class="manual-suggest" id="manualSuggest" hidden></div>
           <div class="manual-geo-row">
             <button class="manual-geo" id="manualGeo" type="button">📍 Use my location</button>
             <span class="manual-geo__msg" id="manualGeoMsg" aria-live="polite"></span>
@@ -184,6 +185,6 @@
   <script src="offline.js?v=r3"></script>
   <script src="auth.js?v=r4"></script>
   <script src="rebuttals.js?v=r5"></script>
-  <script src="app.js?v=r7"></script>
+  <script src="app.js?v=r8"></script>
 </body>
 </html>

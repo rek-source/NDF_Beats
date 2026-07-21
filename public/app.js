@@ -71,7 +71,7 @@
       'sheetStatus', 'toast', 'curtain', 'curtainSpinner', 'curtainTitle',
       'curtainMsg', 'curtainSlot', 'scriptToggle', 'scriptPanel', 'scriptChev',
       'logDoorBtn', 'manualScrim', 'manualSheet', 'manualBeatLabel', 'manualClose',
-      'manualAddr', 'manualGeo', 'manualGeoMsg', 'manualNote', 'manualPhaseDisp',
+      'manualAddr', 'manualSuggest', 'manualGeo', 'manualGeoMsg', 'manualNote', 'manualPhaseDisp',
       'manualPhasePkg', 'manualPkgGrid', 'manualPkgBack', 'manualDispGrid',
       'manualStatus'
     ].forEach(function (id) { els[id] = $(id); });
@@ -250,6 +250,14 @@
     return city && city !== '—' ? city + ' · ' : '';
   }
 
+  /** "City ZIP" for a door row/sheet, omitting the '—'/'00000' placeholders. */
+  function placeLabel(city, zip) {
+    var parts = [];
+    if (city && city !== '—') parts.push(city);
+    if (zip && zip !== '00000') parts.push(zip);
+    return parts.join(' ');
+  }
+
   // In-app beat switcher (topbar): refetch the rep's beats so progress counts
   // are fresh, then reopen the picker — no logout required.
   function switchBeat() {
@@ -363,7 +371,7 @@
     addr.className = 'addr';
     var a1 = document.createElement('span'); a1.className = 'a1'; a1.textContent = t.address;
     var a2 = document.createElement('span'); a2.className = 'a2';
-    a2.textContent = t.city + ' ' + t.zip;
+    a2.textContent = placeLabel(t.city, t.zip);
     addr.appendChild(a1); addr.appendChild(a2);
 
     var meta = document.createElement('span');
@@ -549,7 +557,7 @@
     state.activeTargetId = targetId;
 
     els.sheetAddr.textContent = t.address;
-    els.sheetSub.textContent = t.city + ' ' + t.zip + (t.no_soliciting ? '  ·  ⚠ NO SOLICITING' : '');
+    els.sheetSub.textContent = placeLabel(t.city, t.zip) + (t.no_soliciting ? '  ·  ⚠ NO SOLICITING' : '');
     els.sheetScore.textContent = t.score;
 
     renderFactors(t);
@@ -829,10 +837,15 @@
   // the server creates an honest ad-hoc target (score 0, unknown signals), the
   // knock, and (for sold) the sale in one idempotent call.
   var manualGeoPos = null; // { lat, lng } captured via "Use my location"
+  var manualPick = null;   // { lat, lng, city, zip } from a picked address suggestion
+  var suggestTimer = null;
+  var suggestSeq = 0;      // stale-response guard for out-of-order fetches
 
   function openManualSheet() {
     if (!state.beat) return;
     manualGeoPos = null;
+    manualPick = null;
+    hideSuggest();
     els.manualAddr.value = '';
     els.manualNote.value = '';
     els.manualGeoMsg.textContent = '';
@@ -860,6 +873,69 @@
 
   function setManualDispDisabled(disabled) {
     els.manualDispGrid.querySelectorAll('.dispbtn').forEach(function (b) { b.disabled = disabled; });
+  }
+
+  // ---------------------------------------------------------- address suggest
+  // Debounced search-as-you-type against Photon (OSM geocoder — supports
+  // autocomplete, CORS, no key; runs client-side so it works from the iPad's
+  // residential IP). Biased to the rep's GPS fix, else the beat center. A
+  // picked suggestion carries exact house coordinates + real city/zip, so the
+  // server never needs to geocode. Offline/failed lookups fail silent — the
+  // typed address alone still works.
+  function onManualAddrInput() {
+    manualPick = null; // the typed text no longer matches a picked suggestion
+    var q = (els.manualAddr.value || '').trim();
+    clearTimeout(suggestTimer);
+    if (q.length < 4) { hideSuggest(); return; }
+    suggestTimer = setTimeout(function () { fetchSuggestions(q); }, 250);
+  }
+
+  function fetchSuggestions(q) {
+    var seq = ++suggestSeq;
+    var bias = manualGeoPos
+      || (state.beat && state.beat.center)
+      || { lat: 37.6391, lng: -120.9969 }; // Modesto — service-area fallback
+    var url = 'https://photon.komoot.io/api/?q=' + encodeURIComponent(q) +
+      '&limit=5&lat=' + bias.lat + '&lon=' + bias.lng;
+    fetch(url).then(function (r) { return r.json(); }).then(function (json) {
+      if (seq !== suggestSeq) return; // a newer query is in flight
+      var items = (json && json.features || []).filter(function (f) {
+        var p = f.properties || {};
+        return p.housenumber && p.street && p.state === 'California';
+      });
+      renderSuggest(items);
+    }).catch(function () { if (seq === suggestSeq) hideSuggest(); });
+  }
+
+  function renderSuggest(items) {
+    els.manualSuggest.innerHTML = '';
+    if (!items.length) { hideSuggest(); return; }
+    items.forEach(function (f) {
+      var p = f.properties;
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'manual-suggest__item';
+      btn.textContent = p.housenumber + ' ' + p.street + ', ' +
+        (p.city || '') + (p.postcode ? ' ' + p.postcode : '');
+      btn.addEventListener('click', function () {
+        manualPick = {
+          lat: f.geometry.coordinates[1],
+          lng: f.geometry.coordinates[0],
+          city: p.city || undefined,
+          zip: p.postcode || undefined
+        };
+        els.manualAddr.value = p.housenumber + ' ' + p.street;
+        hideSuggest();
+      });
+      els.manualSuggest.appendChild(btn);
+    });
+    els.manualSuggest.hidden = false;
+  }
+
+  function hideSuggest() {
+    if (!els.manualSuggest) return;
+    els.manualSuggest.hidden = true;
+    els.manualSuggest.innerHTML = '';
   }
 
   function captureLocation() {
@@ -900,11 +976,17 @@
     var addr = (els.manualAddr.value || '').trim();
     if (!addr) { setManualStatus('Enter the address first.', 'err'); return; }
     var cu = uuid();
+    // Pin precision: a picked suggestion is the exact house — it wins over the
+    // device GPS fix (which is wherever the rep is standing); the server
+    // geocodes only when neither is available.
+    var pin = manualPick || manualGeoPos;
     var body = {
       beat_id: state.beat.id,
       address: addr,
-      lat: manualGeoPos ? manualGeoPos.lat : undefined,
-      lng: manualGeoPos ? manualGeoPos.lng : undefined,
+      lat: pin ? pin.lat : undefined,
+      lng: pin ? pin.lng : undefined,
+      city: manualPick ? manualPick.city : undefined,
+      zip: manualPick ? manualPick.zip : undefined,
       disposition: disposition,
       note: (els.manualNote.value || '').trim() || undefined,
       package: pkg ? pkg.key : undefined,
@@ -920,10 +1002,10 @@
       id: 'manual_' + cu,
       seq: state.targets.length + 1,
       address: addr,
-      city: state.beat.city === '—' ? '' : state.beat.city,
-      zip: '',
-      lat: manualGeoPos ? manualGeoPos.lat : center.lat,
-      lng: manualGeoPos ? manualGeoPos.lng : center.lng,
+      city: (manualPick && manualPick.city) || (state.beat.city === '—' ? '' : state.beat.city),
+      zip: (manualPick && manualPick.zip) || '',
+      lat: pin ? pin.lat : center.lat,
+      lng: pin ? pin.lng : center.lng,
       score: 0,
       no_soliciting: 0,
       ad_hoc: true,
@@ -1025,6 +1107,7 @@
       });
     }
     if (els.manualGeo) els.manualGeo.addEventListener('click', captureLocation);
+    if (els.manualAddr) els.manualAddr.addEventListener('input', onManualAddrInput);
     if (els.manualDispGrid) {
       els.manualDispGrid.querySelectorAll('.dispbtn').forEach(function (b) {
         b.addEventListener('click', function () { handleManualDisposition(b.dataset.disp); });

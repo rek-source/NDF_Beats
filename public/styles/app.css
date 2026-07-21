@@ -688,6 +688,24 @@ body { overflow: hidden; }
 .beat-pick .bstat--ready  { background:#fff; color: var(--ink); }
 .beat-pick .bstat--complete { background: var(--ok); color:#fff; }
 .beat-pick--current { border-left: 6px solid var(--bronze); }
+/* Log-a-door address suggestions (search-as-you-type) */
+.manual-suggest { border: 1px solid var(--ink); border-top: 0; background: #fff; }
+.manual-suggest__item {
+  display: block;
+  width: 100%;
+  min-height: 56px;
+  padding: 12px 14px;
+  border: 0;
+  border-bottom: 1px solid var(--hairline);
+  background: none;
+  font: inherit;
+  font-size: 16px;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.manual-suggest__item:last-child { border-bottom: 0; }
+.manual-suggest__item:hover { background: var(--ivory); }
 .beat-pick--keep {
   justify-content: center;
   background: var(--ivory);
