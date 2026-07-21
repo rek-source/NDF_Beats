@@ -871,10 +871,13 @@
     navigator.geolocation.getCurrentPosition(function (pos) {
       manualGeoPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
       els.manualGeoMsg.textContent = '📍 location captured';
-    }, function () {
-      // Non-fatal: the address alone is enough (server pins to the beat center).
+    }, function (err) {
+      // Non-fatal either way: the server geocodes the typed address. But a
+      // blocked permission (code 1) must say so — not pretend GPS just failed.
       manualGeoPos = null;
-      els.manualGeoMsg.textContent = 'No location — address alone is fine.';
+      els.manualGeoMsg.textContent = (err && err.code === 1)
+        ? 'Location is blocked for this site — allow it in browser settings, or just type the address.'
+        : 'No location — address alone is fine.';
     }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 });
   }
 

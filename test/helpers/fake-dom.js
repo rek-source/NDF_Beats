@@ -189,6 +189,8 @@ export class FakeElement {
   }
 
   scrollIntoView() { /* layout no-op */ }
+  focus() { /* layout no-op */ }
+  blur() { /* layout no-op */ }
 
   // ---- selectors ----
 
