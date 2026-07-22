@@ -4,6 +4,35 @@ One entry per iteration of the overnight polish loop. Newest first.
 
 ---
 
+## 2026-07-22 — Door-sheet data-coverage hint (resolves the deferred #2 decision)
+
+**Backlog item 2, last clause — Ryan approved the design** (simple wording,
+inline, mobile-optimized). A sub-35 Ideal-Client score is *correct* — it's scaled
+by how many signals we actually know — but reps read a low number as "broken".
+The sheet now shows an inline **"N of 7 signals"** hint next to the score
+(wraps under it on a phone; muted so it reads as context, not an alarm), with a
+tooltip: "This score uses the N property signals we actually know for this
+door. A low number here means limited data — not a bad door."
+
+Honest by construction: the count comes from each target's `known_signals`
+(the same record the scorer uses), via a new `knownSignalCount()` in
+`beats.routes.js` that sends `signals_known` (null for legacy rows) +
+`signals_total` (= `SIGNAL_KEYS.length`). The hint is **hidden** when every
+signal is known (score is fully informed) or when coverage is unknown — never
+invented. Verified on the live DB: the 356 active project-beat doors carry 2/7
+coverage (so the hint shows there), while 590 legacy rows have null (hint hides).
+
+New `test/door-coverage.test.js` runs the real bundle: a 2/7 door shows
+"2 of 7", a 7/7 door hides the hint. Bumped `app.js r10→r11`, `app.css r8→r9`.
+
+- Files: `src/routes/beats.routes.js`, `public/index.html`, `public/app.js`,
+  `public/styles/app.css`, `test/door-coverage.test.js`.
+- Suite: 339 → 341 tests, all green.
+- Commit: `9f75a1f`
+- **Needs deploy?** Yes — backend + frontend (part of the deploy batch below).
+
+---
+
 ## 2026-07-22 — Cover the non-retryable Overpass error (final iteration; loop stopped)
 
 **Backlog item 5 (final).** Closing the last cheap `addresses.js` gap: a

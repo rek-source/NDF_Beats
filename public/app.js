@@ -66,7 +66,7 @@
     [
       'app', 'repName', 'beatSwitch', 'beatName', 'beatSub', 'kpiKnocked', 'kpiAnswered', 'kpiSold',
       'listScroll', 'listCount', 'conn', 'connLabel', 'pending', 'themeToggle',
-      'scrim', 'sheetAddr', 'sheetSub', 'sheetClose', 'sheetScore', 'sheetFactors',
+      'scrim', 'sheetAddr', 'sheetSub', 'sheetClose', 'sheetScore', 'sheetCoverage', 'sheetFactors',
       'sheetLast', 'phaseDisp', 'phasePkg', 'pkgGrid', 'pkgBack', 'sheetNote',
       'sheetStatus', 'toast', 'curtain', 'curtainSpinner', 'curtainTitle',
       'curtainMsg', 'curtainSlot', 'scriptToggle', 'scriptPanel', 'scriptChev',
@@ -559,6 +559,7 @@
     els.sheetAddr.textContent = t.address;
     els.sheetSub.textContent = placeLabel(t.city, t.zip) + (t.no_soliciting ? '  ·  ⚠ NO SOLICITING' : '');
     els.sheetScore.textContent = t.score;
+    renderCoverage(t);
 
     renderFactors(t);
 
@@ -592,6 +593,28 @@
       return 'unknown — area ~' + Math.round(t.tract_owner_occ_rate * 100) + '%';
     }
     return 'unknown';
+  }
+
+  // Data-coverage hint: a low Ideal-Client score is CORRECT when it's scaled by
+  // how many signals we actually know. Surfacing "N of 7 signals" inline under
+  // the score tells the rep a low number means limited data, not a bad door.
+  // Hidden when every signal is known (score is fully informed) or when coverage
+  // is unknown (legacy door) — never invented.
+  function renderCoverage(t) {
+    if (!els.sheetCoverage) return;
+    var known = t.signals_known;
+    var total = t.signals_total;
+    if (known == null || total == null || known >= total) {
+      els.sheetCoverage.hidden = true;
+      els.sheetCoverage.textContent = '';
+      els.sheetCoverage.removeAttribute('title');
+      return;
+    }
+    els.sheetCoverage.hidden = false;
+    els.sheetCoverage.textContent = known + ' of ' + total + ' signals';
+    els.sheetCoverage.title =
+      'This score uses the ' + known + ' property signals we actually know for this door. ' +
+      'A low number here means limited data — not a bad door.';
   }
 
   function renderFactors(t) {

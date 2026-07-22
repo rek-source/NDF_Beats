@@ -11,8 +11,23 @@ import {
   getBeatTargets,
 } from '../db/repo.js';
 import { ownerOccupancyKnown } from '../scoring/compliance.js';
+import { SIGNAL_KEYS } from '../scoring/profile.js';
 
 export const beatsRouter = Router();
+
+// How many of the scoring signals were REAL for this door (from known_signals),
+// so the sheet can show an honest "N of 7 signals" hint that explains a low,
+// coverage-scaled score. null when unknown (legacy rows) — never invented.
+function knownSignalCount(knownSignalsJson) {
+  if (knownSignalsJson == null) return null;
+  try {
+    const arr = JSON.parse(knownSignalsJson);
+    if (!Array.isArray(arr)) return null;
+    return arr.filter((k) => SIGNAL_KEYS.includes(k)).length;
+  } catch {
+    return null;
+  }
+}
 
 // 5.1 List beats for a rep.
 beatsRouter.get('/reps/:repId/beats', (req, res) => {
@@ -69,6 +84,10 @@ beatsRouter.get('/beats/:beatId', (req, res) => {
     // Honesty display: which signals were REAL at ingest
     tract_owner_occ_rate: t.tract_owner_occ_rate ?? null,
     khb_project_dist_m: t.khb_project_dist_m ?? null,
+    // Data-coverage hint inputs: how many of the SIGNAL_KEYS were known (null =
+    // unknown/legacy). Lets the sheet explain a low, coverage-scaled score.
+    signals_known: knownSignalCount(t.known_signals),
+    signals_total: SIGNAL_KEYS.length,
   }));
 
   res.json({

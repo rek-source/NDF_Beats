@@ -20,7 +20,7 @@
   <!-- Brand tokens (frozen) + app layout. ?v= busts Caddy's 4h asset cache on
        each deploy (index.html itself is served no-cache, so new links apply at once). -->
   <link rel="stylesheet" href="styles/tokens.css?v=r3" />
-  <link rel="stylesheet" href="styles/app.css?v=r8" />
+  <link rel="stylesheet" href="styles/app.css?v=r9" />
 </head>
 <body>
   <div id="app" hidden>
@@ -84,6 +84,7 @@
         <div class="scorebanner">
           <span class="big" id="sheetScore">—</span>
           <span class="lbl">Ideal-Client<br>Score</span>
+          <span class="score-cov" id="sheetCoverage" hidden></span>
         </div>
 
         <ul class="dash-list factors" id="sheetFactors"></ul>
@@ -185,6 +186,6 @@
   <script src="offline.js?v=r3"></script>
   <script src="auth.js?v=r4"></script>
   <script src="rebuttals.js?v=r5"></script>
-  <script src="app.js?v=r10"></script>
+  <script src="app.js?v=r11"></script>
 </body>
 </html>
