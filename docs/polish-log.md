@@ -4,6 +4,32 @@ One entry per iteration of the overnight polish loop. Newest first.
 
 ---
 
+## 2026-07-22 — Cover census.js error/fallback branches (never-throw contract)
+
+**Backlog item 5 (continued).** `getDemographics` promises to *always resolve* —
+ingestion must keep running when the keyless geocoder or ACS endpoint misbehaves
+— but every degradation path was untested (census.js was the codebase's weakest
+file). New `test/census-fallback.test.js` mocks `fetch` per branch and pins the
+never-throw contract:
+
+- geocoder HTTP 500 → neutral demographics, `tract_geoid: null`;
+- empty geocoder result → `geocodeTract` returns null → neutral;
+- ACS returns non-JSON (a redirect/HTML key error) → ACS parse throws, caught →
+  neutral, but the geocoded `tract_geoid` survives;
+- ACS header-only (no data row) → neutral;
+- ACS null-income sentinel (`-666666666`) → neutral even though a row exists;
+- `hasCensusKey()` reflects the configured key.
+
+`census.js` coverage: line **89.35% → 100%**, branch **40% → 83.33%**, funcs
+**83% → 100%**. The happy path stays covered by `census-acs.test.js`. Tests only.
+
+- Files: `test/census-fallback.test.js`.
+- Suite: 310 → 316 tests, all green.
+- Commit: `PENDING`
+- **Needs deploy?** No — tests only.
+
+---
+
 ## 2026-07-22 — Unit-cover incomeToBand (scoring input) + brand-token audit
 
 **Backlog item 6 (brand tokens) → item 5 (coverage).** Started on backlog #6's
