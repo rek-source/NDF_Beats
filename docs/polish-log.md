@@ -26,7 +26,7 @@ only runs when the file is executed directly, not on import; not worth a test.
 
 - Files: `test/migrate-additive.test.js`.
 - Suite: 335 → 337 tests, all green.
-- Commit: `PENDING`
+- Commit: `d584d4d`
 - **Needs deploy?** No — tests only.
 
 ---
