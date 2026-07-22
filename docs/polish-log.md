@@ -25,7 +25,7 @@ never-throw contract:
 
 - Files: `test/census-fallback.test.js`.
 - Suite: 310 → 316 tests, all green.
-- Commit: `PENDING`
+- Commit: `2c82e46`
 - **Needs deploy?** No — tests only.
 
 ---
