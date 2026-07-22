@@ -25,7 +25,7 @@ category as migrate's CLI shim).
 
 - Files: `test/server-error-handler.test.js`.
 - Suite: 337 → 338 tests, all green.
-- Commit: `PENDING`
+- Commit: `7773fd0`
 - **Needs deploy?** No — tests only.
 
 ### Note — coverage sweep wrapping up
