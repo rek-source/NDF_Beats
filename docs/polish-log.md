@@ -22,7 +22,7 @@ tests — no source change.
 
 - Files: `test/api.test.js`.
 - Suite: 299 → 301 tests, all green.
-- Commit: `PENDING`
+- Commit: `9de40d1`
 - **Needs deploy?** No — tests only.
 
 ### Note (next iteration)
