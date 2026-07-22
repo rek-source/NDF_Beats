@@ -19,5 +19,5 @@ stale pricing string and do surface the live amounts — so this can't silently
 regress.
 
 - Suite: 275 → 277 tests, all green.
-- Commit: _(see git log)_
+- Commit: `399fe8a`
 - **Needs deploy?** No — docs + a test only; no runtime/DB/frontend change.
