@@ -26,7 +26,7 @@ branch **76% → 81%**. Tests only.
 
 - Files: `test/addresses-city.test.js`.
 - Suite: 328 → 331 tests, all green.
-- Commit: `PENDING`
+- Commit: `b0c7c7c`
 - **Needs deploy?** No — tests only.
 
 ### Note
