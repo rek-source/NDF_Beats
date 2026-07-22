@@ -25,6 +25,7 @@ import {
   transaction,
 } from '../db/repo.js';
 import { isUniqueViolation } from '../db/errors.js';
+import { normalizeTimestamp } from '../util/time.js';
 
 export const knocksRouter = Router();
 
@@ -199,13 +200,4 @@ knocksRouter.post('/knocks/manual', async (req, res) => {
 function shapeManualSale(s) {
   return { id: s.id, package: s.package, amount_usd: Math.round(s.amount_cents) / 100,
     amount_cents: s.amount_cents, agreement_url: s.agreement_url, sold_at: s.sold_at };
-}
-
-/** Accept a client-supplied ISO timestamp; fall back to server time. */
-function normalizeTimestamp(input) {
-  if (typeof input === 'string') {
-    const d = new Date(input);
-    if (!Number.isNaN(d.getTime())) return d.toISOString();
-  }
-  return new Date().toISOString();
 }

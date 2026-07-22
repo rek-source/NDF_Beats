@@ -4,6 +4,29 @@ One entry per iteration of the overnight polish loop. Newest first.
 
 ---
 
+## 2026-07-22 — Dedupe normalizeTimestamp into a shared, tested util
+
+**Backlog item 7 (dedupe) + item 5 (coverage).** Same pattern as the previous
+iteration: `normalizeTimestamp` was copy-pasted **byte-for-byte** in
+`sales.routes.js` and `knocks.routes.js` (the latter used by both the beat and
+manual-knock handlers). Its fallback branch — a bad/non-string client timestamp
+degrading to server time — was thinly exercised and never asserted directly.
+
+Extracted to `src/util/time.js` (new `src/util/` home for cross-cutting
+helpers), imported in both routes, deleted the copies. New
+`test/util-time.test.js` asserts the contract: a parseable client ISO string is
+honored (normalized to UTC ISO), and anything unusable (unparseable string,
+non-string, empty) falls back to a valid server-time ISO — so a knock/sale
+always records a real timestamp even from a device with a broken clock.
+
+- Files: `src/util/time.js` (new), `src/routes/sales.routes.js`,
+  `src/routes/knocks.routes.js`, `test/util-time.test.js` (new).
+- Suite: 319 → 321 tests, all green.
+- Commit: `PENDING`
+- **Needs deploy?** Yes — backend refactor (behavior-preserving); Ryan batches it.
+
+---
+
 ## 2026-07-22 — Dedupe isUniqueViolation into a shared, tested util
 
 **Backlog item 7 (dedupe) + item 5 (coverage).** `isUniqueViolation` was

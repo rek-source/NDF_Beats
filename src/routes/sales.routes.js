@@ -8,6 +8,7 @@ import { Router } from 'express';
 import { randomUUID } from 'node:crypto';
 import { PACKAGE_CATALOG, PACKAGE_KEYS, buildAgreementUrl } from '../config.js';
 import { isUniqueViolation } from '../db/errors.js';
+import { normalizeTimestamp } from '../util/time.js';
 import {
   getSaleByClientUuid,
   getKnockById,
@@ -100,11 +101,3 @@ salesRouter.post('/sales', (req, res) => {
 
   return res.status(201).json({ sale: shapeSale(saleRow) });
 });
-
-function normalizeTimestamp(input) {
-  if (typeof input === 'string') {
-    const d = new Date(input);
-    if (!Number.isNaN(d.getTime())) return d.toISOString();
-  }
-  return new Date().toISOString();
-}
