@@ -30,7 +30,7 @@ the `/rename` POST, and the CSS. Watched it fail (3/3) then pass. Bumped
 - Files: `public/admin.js`, `public/styles/admin.css`, `public/admin.html`,
   `test/admin-beat-rename-ui.test.js`.
 - Suite: 291 → 294 tests, all green.
-- Commit: `PENDING`
+- Commit: `f168041`
 - **Needs deploy?** Yes — frontend (admin.js/css + cache-busts).
 
 ---
