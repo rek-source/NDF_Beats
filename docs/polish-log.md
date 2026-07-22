@@ -23,7 +23,7 @@ is unchanged.
 - Files: `src/db/errors.js` (new), `src/routes/sales.routes.js`,
   `src/routes/knocks.routes.js`, `test/db-errors.test.js` (new).
 - Suite: 316 → 319 tests, all green.
-- Commit: `PENDING`
+- Commit: `6019950`
 - **Needs deploy?** Yes — backend (route refactor; behavior-preserving). Ryan
   batches it; no rush since behavior is identical.
 
