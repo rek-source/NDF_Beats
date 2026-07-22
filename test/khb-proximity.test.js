@@ -117,3 +117,19 @@ test('updateTargetGeoSignals persists dist/tract/score/known_signals', async () 
   assert.equal(row.known_signals, '["khb_proximity"]');
   closeDb();
 });
+
+test('signalsFromRow carries khb_project_dist_m so re-scores keep proximity', async () => {
+  const { signalsFromRow } = await import('../src/scoring/scoring.js');
+  const row = {
+    value_cents: 0, home_age: 0, owner_occupied: 0, owner_occupied_known: 0,
+    tenure_years: 0, recently_sold: 0, income_band: 7,
+    khb_project_dist_m: 120, known_signals: '["income_band","khb_proximity"]',
+  };
+  const s = signalsFromRow(row);
+  assert.equal(s.khb_project_dist_m, 120, 'proximity survives row round-trip');
+  assert.equal(s.income_band, 7);
+  assert.equal(s.value_cents, null, 'unlisted signals stay unknown');
+
+  const legacy = signalsFromRow({ ...row, known_signals: null, khb_project_dist_m: null });
+  assert.equal(legacy.khb_project_dist_m, null, 'legacy rows without distance stay unknown');
+});

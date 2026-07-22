@@ -189,5 +189,6 @@ export function signalsFromRow(row) {
     tenure_years: has('tenure') ? row.tenure_years : null,
     recently_sold: has('recently_sold') ? row.recently_sold : null,
     income_band: has('income_band') ? row.income_band : null,
+    khb_project_dist_m: has('khb_proximity') ? (row.khb_project_dist_m ?? null) : null,
   };
 }
