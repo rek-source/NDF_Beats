@@ -4,6 +4,33 @@ One entry per iteration of the overnight polish loop. Newest first.
 
 ---
 
+## 2026-07-22 — Cover the additive-migration ALTER path (prod-upgrade mechanism)
+
+**Backlog item 5 (continued).** `ensureColumn` → `ALTER TABLE ADD COLUMN` is how
+a migration upgrades a **live** DB in place — the exact thing that runs against
+prod on deploy. But on a fresh schema every column already exists (schema.sql),
+so that ALTER branch never fired in the existing migrate tests (they only proved
+idempotency on an already-current DB). It was uncovered — the riskiest kind of
+untested code for a live app.
+
+New `test/migrate-additive.test.js` simulates a **pre-migration `reps`** (an old
+table shaped before the PIN/token columns) with a legacy row, runs `migrate()`,
+and asserts: all six identity columns get added, the existing row survives, and
+NOT-NULL-DEFAULT columns backfill (`pin_attempts=0`, `token_version=1`) while
+nullable ones stay null — then re-running migrate is idempotent (no
+duplicate-column error).
+
+`migrate.js` coverage: line **93.55% → 95.70%**, branch **75% → 87.5%**. The
+last uncovered lines (90-93) are the `import.meta.url === argv[1]` CLI shim — it
+only runs when the file is executed directly, not on import; not worth a test.
+
+- Files: `test/migrate-additive.test.js`.
+- Suite: 335 → 337 tests, all green.
+- Commit: `PENDING`
+- **Needs deploy?** No — tests only.
+
+---
+
 ## 2026-07-22 — Cover the assessor parcel lookup (never-throws enrichment)
 
 **Backlog item 5 (continued).** `lookupParcel` is the free county-assessor
