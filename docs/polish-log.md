@@ -4,6 +4,30 @@ One entry per iteration of the overnight polish loop. Newest first.
 
 ---
 
+## 2026-07-22 — Cover the assessor parcel lookup (never-throws enrichment)
+
+**Backlog item 5 (continued).** `lookupParcel` is the free county-assessor
+enrichment (extra home value + age at ingest). Like `getDemographics` it must
+**never throw** — ingestion continues without the extra fields when a county has
+no free endpoint or the ArcGIS service is down. Existing tests covered
+`parseAssessorFeature`; `lookupParcel` itself (assessor.js's biggest gap) was
+untested. New `test/assessor-lookup.test.js` (fetch stubbed):
+
+- `freeAssessorCounties()` lists exactly the free-endpoint counties;
+- an unsupported county (Stanislaus) returns null **without any fetch**;
+- a valid ArcGIS feature parses to `value_cents` (land + improvement) + age;
+- HTTP 500, an ArcGIS `error` payload, and empty `features` each degrade to null.
+
+`assessor.js` coverage: line **80.56% → 100%**, branch **80% → 94.74%**, funcs
+**80% → 100%**. Tests only.
+
+- Files: `test/assessor-lookup.test.js`.
+- Suite: 331 → 335 tests, all green.
+- Commit: `PENDING`
+- **Needs deploy?** No — tests only.
+
+---
+
 ## 2026-07-22 — Cover the per-city address pull (addresses.js)
 
 **Backlog item 5 (continued).** `addresses.js` was the weakest source file
