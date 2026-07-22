@@ -124,6 +124,9 @@ test('5.2 get beat with ordered targets — shape + 404', async () => {
   assert.equal(typeof t.owner_occupied, 'boolean');
   assert.equal(typeof t.no_soliciting, 'boolean');
   assert.ok('last_disposition' in t);
+  // Honesty display: tract owner-occ and project distance (null for seed data)
+  assert.ok('tract_owner_occ_rate' in t);
+  assert.ok('khb_project_dist_m' in t);
 
   const missing = await api('GET', '/api/beats/beat_nope');
   assert.equal(missing.status, 404);

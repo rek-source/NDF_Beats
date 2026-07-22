@@ -590,6 +590,13 @@
       ['Owner-occupied', t.owner_occupied ? 'Yes' : 'No'],
       ['Tenure', (t.tenure_years != null ? t.tenure_years + ' yrs' : '—')]
     ];
+    // Honesty display: show tract owner-occupancy rate and project proximity
+    if (t.tract_owner_occ_rate != null) {
+      f.push(['Tract owner-occ rate', Math.round(t.tract_owner_occ_rate * 100) + '%']);
+    }
+    if (t.khb_project_dist_m != null) {
+      f.push(['Distance to KHB project', Math.round(t.khb_project_dist_m) + ' m']);
+    }
     els.sheetFactors.innerHTML = '';
     f.forEach(function (pair) {
       var li = document.createElement('li');

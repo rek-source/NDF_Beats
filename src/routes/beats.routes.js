@@ -61,6 +61,9 @@ beatsRouter.get('/beats/:beatId', (req, res) => {
     score: t.score,
     no_soliciting: t.no_soliciting === 1,
     last_disposition: t.last_disposition ?? null,
+    // Honesty display: which signals were REAL at ingest
+    tract_owner_occ_rate: t.tract_owner_occ_rate ?? null,
+    khb_project_dist_m: t.khb_project_dist_m ?? null,
   }));
 
   res.json({
