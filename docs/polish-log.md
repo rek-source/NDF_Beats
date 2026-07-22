@@ -4,6 +4,34 @@ One entry per iteration of the overnight polish loop. Newest first.
 
 ---
 
+## 2026-07-22 — Clearer Create-a-Beat validation errors
+
+**Backlog item 4 (second half).** The Create-a-Beat card lumped both required
+fields into one message ("Beat name and city are required.") with no indication
+of *which* field was wrong, and server errors printed as a bare message line
+with no field context.
+
+Now each field is validated separately: the first offending input (name, then
+city) is marked `is-invalid` + `aria-invalid="true"`, focused, and given a
+distinct message ("Beat name is required." / "City is required."). Server-side
+rejections are re-mapped to the field they mention (`/name/i` → name input,
+`/city/i` → city input) so the inline red edge matches the text. Marks clear as
+the manager edits (form `input` listener) and at the start of a fresh submit.
+CSS `.ad-input.is-invalid` is a red edge that survives focus.
+
+New `test/admin-create-beat-validation-ui.test.js` (file-scan wiring guard):
+distinct per-field messages, `aria-invalid` set + cleared, `.is-invalid` in JS
+and CSS. Watched fail (3) → pass. Bumped `admin.js?v=a9 → a10`,
+`admin.css?v=a6 → a7`. Backlog #4 is now fully done.
+
+- Files: `public/admin.js`, `public/styles/admin.css`, `public/admin.html`,
+  `test/admin-create-beat-validation-ui.test.js`.
+- Suite: 296 → 299 tests, all green.
+- Commit: `PENDING`
+- **Needs deploy?** Yes — frontend (admin.js/css + cache-busts).
+
+---
+
 ## 2026-07-21 — Surface the KHB proximity distance band in the profile card
 
 **Backlog item 4 (first half).** The ICP profile card already renders the

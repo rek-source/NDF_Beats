@@ -410,14 +410,15 @@
   function submitBeat(e) {
     e.preventDefault();
     if (els.beatMsg) { els.beatMsg.textContent = ''; els.beatMsg.className = 'ad-form__msg'; }
+    clearBeatFieldErrors();
     var name = els.beatName.value.trim();
     var city = els.beatCity.value.trim();
     var county = els.beatCounty.value;
     var repId = els.beatRep.value || null;
-    if (!name || !city) {
-      setBeatMsg('Beat name and city are required.', 'error');
-      return;
-    }
+    // Per-field validation: mark and focus the FIRST offending input so the
+    // manager sees exactly which field to fix, not a lumped "name and city".
+    if (!name) { markBeatFieldError(els.beatName, 'Beat name is required.'); return; }
+    if (!city) { markBeatFieldError(els.beatCity, 'City is required.'); return; }
     els.beatSubmit.disabled = true;
     api('POST', '/admin/beats', { name: name, city: city, county: county, rep_id: repId }).then(function (r) {
       els.beatSubmit.disabled = false;
@@ -426,7 +427,12 @@
         els.beatForm.reset();
         loadOverview().then(function () { if (els.beatName) els.beatName.focus(); });
       } else {
-        setBeatMsg((r.json && r.json.error) || ('Failed (HTTP ' + r.status + ')'), 'error');
+        var msg = (r.json && r.json.error) || ('Failed (HTTP ' + r.status + ')');
+        // Re-mark the field the SERVER rejected (e.g. duplicate/blank name) so
+        // the inline signal matches the message.
+        if (/name/i.test(msg)) markBeatFieldError(els.beatName, msg);
+        else if (/city/i.test(msg)) markBeatFieldError(els.beatCity, msg);
+        else setBeatMsg(msg, 'error');
       }
     }).catch(function (err) {
       els.beatSubmit.disabled = false;
@@ -445,6 +451,26 @@
   function clearBeatMsg() {
     if (beatMsgTimer) { clearTimeout(beatMsgTimer); beatMsgTimer = null; }
     if (els.beatMsg) { els.beatMsg.textContent = ''; els.beatMsg.className = 'ad-form__msg'; }
+  }
+
+  // Mark a Create-a-Beat input as invalid (visual + a11y) and surface the reason.
+  function markBeatFieldError(input, msg) {
+    if (input) {
+      input.classList.add('is-invalid');
+      input.setAttribute('aria-invalid', 'true');
+      input.focus();
+    }
+    setBeatMsg(msg, 'error');
+  }
+
+  // Drop the invalid marks so the fields read clean once the manager corrects
+  // them (called on form input and at the start of a fresh submit).
+  function clearBeatFieldErrors() {
+    [els.beatName, els.beatCity].forEach(function (input) {
+      if (!input) return;
+      input.classList.remove('is-invalid');
+      input.removeAttribute('aria-invalid');
+    });
   }
 
   var repMsgTimer = null;
@@ -814,7 +840,8 @@
     }
     if (els.beatForm) {
       els.beatForm.addEventListener('submit', submitBeat);
-      els.beatForm.addEventListener('input', clearBeatMsg); // clear stale msg on edit
+      // clear stale msg + field marks as the manager edits
+      els.beatForm.addEventListener('input', function () { clearBeatMsg(); clearBeatFieldErrors(); });
     }
     if (els.beatsTbody) {
       els.beatsTbody.addEventListener('change', onAssignChange);

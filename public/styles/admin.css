@@ -219,6 +219,10 @@ body {
   color: var(--ink);
 }
 .ad-input:focus { border-color: var(--bronze); }
+/* Invalid Create-a-Beat field: a red edge that survives focus so the manager
+   sees which input the message refers to. */
+.ad-input.is-invalid { border-color: var(--bad); box-shadow: 0 0 0 1px var(--bad); }
+.ad-input.is-invalid:focus { border-color: var(--bad); }
 .ad-btn {
   font-family: var(--font-body);
   font-size: 16px;
