@@ -23,7 +23,7 @@ both originals, so the manual-knock and sales flows are unchanged.
 - Files: `src/routes/serializers.js` (new), `src/routes/sales.routes.js`,
   `src/routes/knocks.routes.js`, `test/serializers.test.js` (new).
 - Suite: 321 → 323 tests, all green.
-- Commit: `PENDING`
+- Commit: `14391b5`
 - **Needs deploy?** Yes — backend refactor (behavior-preserving); Ryan batches it.
 
 ---
