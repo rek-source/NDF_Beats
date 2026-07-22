@@ -4,6 +4,33 @@ One entry per iteration of the overnight polish loop. Newest first.
 
 ---
 
+## 2026-07-22 — Scoreboard touch targets to the 64px iPad floor
+
+**Backlog item 6.** The scoreboard's tappable header controls sat below the
+64px touch floor the rep app (`app.css`) already honors for field surfaces: the
+view tabs and period toggles (`.sb-tab` / `.sb-period`) were `min-height: 40px`,
+and the refresh button (`.sb-live__refresh`) was a 32×32px square. On an iPad
+(and even on a wall display someone walks up to), those are easy to miss.
+
+Raised `.sb-tab` / `.sb-period` to `min-height: 64px` and made the refresh a
+`min-width/min-height: 64px` square, each `display: inline-flex` + centered so
+the min-size is a real hit area, not just a tall box. Colors/typography
+untouched — `tokens.css` stays frozen; only the layout file changed.
+
+New `test/scoreboard-touch-targets.test.js` mirrors the `admin-touch-targets`
+CSS-scan convention (parses the rule body, asserts `min-height`/`min-width`
+≥ 64px). Watched fail (3) → pass. The scoreboard assets had **no** cache-bust
+token; added `scoreboard.css?v=s1` per rule 5 (still a relative path —
+`static-paths.test.js` stays green).
+
+- Files: `public/styles/scoreboard.css`, `public/scoreboard.html`,
+  `test/scoreboard-touch-targets.test.js`.
+- Suite: 301 → 304 tests, all green.
+- Commit: `PENDING`
+- **Needs deploy?** Yes — frontend (scoreboard.css + new cache-bust).
+
+---
+
 ## 2026-07-22 — Cover the sales-route validation branches
 
 **Backlog item 5.** Ran `node --test --experimental-test-coverage` to find the

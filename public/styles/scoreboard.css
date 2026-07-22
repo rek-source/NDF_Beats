@@ -140,7 +140,12 @@ a:hover {
   border-right: 1px solid var(--bronze);
   padding: 9px 16px;
   cursor: pointer;
-  min-height: 40px;
+  /* 64px iPad touch floor (matches app.css field surfaces); centered so the
+     min-height becomes a real hit area, not just a tall box. */
+  min-height: 64px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 .sb-tab:last-child,
 .sb-period:last-child {
@@ -199,8 +204,12 @@ a:hover {
   color: var(--bg);
   font-size: 16px;
   line-height: 1;
-  width: 32px;
-  height: 32px;
+  /* 64px square touch floor for the tappable refresh (was 32×32). */
+  min-width: 64px;
+  min-height: 64px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
 }
 .sb-live__refresh:hover {
