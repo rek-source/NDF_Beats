@@ -27,7 +27,7 @@ and CSS. Watched fail (3) → pass. Bumped `admin.js?v=a9 → a10`,
 - Files: `public/admin.js`, `public/styles/admin.css`, `public/admin.html`,
   `test/admin-create-beat-validation-ui.test.js`.
 - Suite: 296 → 299 tests, all green.
-- Commit: `PENDING`
+- Commit: `3067a33`
 - **Needs deploy?** Yes — frontend (admin.js/css + cache-busts).
 
 ---
