@@ -4,6 +4,36 @@ One entry per iteration of the overnight polish loop. Newest first.
 
 ---
 
+## 2026-07-22 — Cover the sales-route validation branches
+
+**Backlog item 5.** Ran `node --test --experimental-test-coverage` to find the
+weakest source file: `sales.routes.js` at 80% line / 74% branch — the lowest in
+`src/routes`. Two validation branches had no test:
+
+- `POST /api/sales` with **no `knock_id`** → 400 `"knock_id is required"` (was
+  only ever reached via the happy path, never asserted).
+- `POST /api/sales` with a **`knock_id` that doesn't exist** → 400
+  `"knock not found"`.
+
+Added both to `api.test.js` (each sends a valid package so it clears the package
+gate and actually exercises the knock_id branch). `sales.routes.js` branch
+coverage rose **73.68% → 84.21%**, line **80.34% → 83.76%**. Behavior-only
+tests — no source change.
+
+- Files: `test/api.test.js`.
+- Suite: 299 → 301 tests, all green.
+- Commit: `PENDING`
+- **Needs deploy?** No — tests only.
+
+### Note (next iteration)
+- The remaining `sales.routes.js` gap (lines 87-98, 111-117) is the
+  unique-constraint **race-recovery** path (`isUniqueViolation` → re-check
+  client_uuid / knock). Deterministically triggering it needs a concurrency or
+  fault injection seam that doesn't exist yet; left for a focused pass rather
+  than a brittle timing test.
+
+---
+
 ## 2026-07-22 — Clearer Create-a-Beat validation errors
 
 **Backlog item 4 (second half).** The Create-a-Beat card lumped both required

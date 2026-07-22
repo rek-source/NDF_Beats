@@ -230,6 +230,23 @@ test('5.4 POST sale — sold-state gate, server price, 409 dup', async () => {
   assert.equal(badPkg.status, 400);
 });
 
+test('5.4 POST sale — missing knock_id is a 400 (distinct from bad package)', async () => {
+  // Valid package clears the package gate so we exercise the knock_id branch.
+  const r = await authed('POST', '/api/sales', {
+    package: 'preferred', client_uuid: randomUUID(),
+  });
+  assert.equal(r.status, 400);
+  assert.equal(r.json.error, 'knock_id is required');
+});
+
+test('5.4 POST sale — knock_id that does not exist is a 400', async () => {
+  const r = await authed('POST', '/api/sales', {
+    knock_id: 'knock_does_not_exist', package: 'preferred', client_uuid: randomUUID(),
+  });
+  assert.equal(r.status, 400);
+  assert.equal(r.json.error, 'knock not found');
+});
+
 test('5.5 scoreboard — 6 KPIs, all periods non-empty, sorted', async () => {
   for (const period of ['today', 'week', 'month']) {
     const r = await api('GET', `/api/scoreboard?period=${period}`);
