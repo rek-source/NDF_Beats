@@ -371,6 +371,19 @@ export function assignBeatToRep(beatId, repId) {
 }
 
 /**
+ * Rename a beat (manager action, admin portal only). Returns the count of rows
+ * changed (1 on success, 0 if beat not found).
+ */
+export function updateBeatName(beatId, newName) {
+  if (!newName || typeof newName !== 'string') return 0;
+  const trimmed = newName.trim();
+  if (!trimmed) return 0;
+  return getDb()
+    .prepare(`UPDATE beats SET name = @name WHERE id = @id`)
+    .run({ id: beatId, name: trimmed }).changes;
+}
+
+/**
  * Real (no fabricated values) data-coverage snapshot for the admin panel:
  * total scored targets, owner-occupied / no-soliciting counts, and a per-county
  * breakdown. Counts only — never invents demographics.

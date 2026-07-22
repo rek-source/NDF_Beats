@@ -4,6 +4,8 @@
 //                                        unassigned count, real data snapshot.
 //   POST /api/reps                    — create a canvassing rep / manager.
 //   POST /api/beats/:beatId/assign    — assign (or unassign) a beat to a rep.
+//   POST /api/beats/:beatId/rename    — rename a beat.
+//   POST /api/admin/reps/:repId/pin   — set / reset a rep's 4-digit login PIN.
 //
 // All data access through repo.js. No fabricated values — the data panel reports
 // counts only. Money is irrelevant here (no $ fields).
@@ -22,6 +24,7 @@ import {
   listAllBeats,
   getBeatById,
   assignBeatToRep,
+  updateBeatName,
   targetsDataStatus,
   listKnocksWithSignals,
   saveIcpProfile,
@@ -447,4 +450,26 @@ adminRouter.post('/admin/reps/:repId/pin', (req, res) => {
   const { hash, salt } = hashPin(pin);
   setRepPin(rep.id, hash, salt);
   res.json({ ok: true, rep: { id: rep.id, name: rep.name, pin_set: true } });
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/admin/beats/:beatId/rename  — rename a beat.
+// Trims whitespace; rejects empty names. Gated by X-Auth-User.
+// ---------------------------------------------------------------------------
+adminRouter.post('/admin/beats/:beatId/rename', (req, res) => {
+  const beat = getBeatById(req.params.beatId);
+  if (!beat) {
+    return res.status(404).json({ error: 'beat not found' });
+  }
+  const newName = req.body?.name ?? '';
+  const trimmed = String(newName).trim();
+  if (!trimmed) {
+    return res.status(400).json({ error: 'beat name cannot be empty' });
+  }
+  const changed = updateBeatName(beat.id, trimmed);
+  if (changed === 0) {
+    return res.status(500).json({ error: 'failed to update beat name' });
+  }
+  const updated = getBeatById(beat.id);
+  res.json({ ok: true, beat: { id: updated.id, name: updated.name } });
 });

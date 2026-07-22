@@ -176,3 +176,33 @@ test('unassigning an ACTIVE beat resets its status to ready', async () => {
   assert.equal(after.rep_id, null);
   assert.equal(after.status, 'ready', 'an unassigned beat must never stay active');
 });
+
+// ---- beat renaming ----
+test('POST /admin/beats/:beatId/rename updates a beat name', async () => {
+  const ov = await api('GET', '/api/admin/overview');
+  const beat = ov.json.beats[0];
+  const originalName = beat.name;
+  assert.ok(originalName);
+
+  const rename = await api('POST', `/api/admin/beats/${beat.id}/rename`, { name: '  New Beat Name  ' });
+  assert.equal(rename.status, 200);
+  assert.equal(rename.json.beat.name, 'New Beat Name'); // trimmed
+
+  const ovAfter = await api('GET', '/api/admin/overview');
+  const renamed = ovAfter.json.beats.find((b) => b.id === beat.id);
+  assert.equal(renamed.name, 'New Beat Name');
+});
+
+test('POST /admin/beats/:beatId/rename rejects empty names', async () => {
+  const ov = await api('GET', '/api/admin/overview');
+  const beat = ov.json.beats[0];
+  const r = await api('POST', `/api/admin/beats/${beat.id}/rename`, { name: '   ' });
+  assert.equal(r.status, 400);
+  assert.equal(r.json.error, 'beat name cannot be empty');
+});
+
+test('POST /admin/beats/:beatId/rename on unknown beat is 404', async () => {
+  const r = await api('POST', '/api/admin/beats/beat_nope/rename', { name: 'X' });
+  assert.equal(r.status, 404);
+  assert.equal(r.json.error, 'beat not found');
+});
