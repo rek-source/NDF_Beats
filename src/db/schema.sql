@@ -107,7 +107,7 @@ CREATE TABLE IF NOT EXISTS sales (
   rep_id        TEXT NOT NULL REFERENCES reps(id),
   target_id     TEXT NOT NULL REFERENCES targets(id),
   package       TEXT NOT NULL CHECK (package IN ('essential','preferred','total_home')),
-  amount_cents  INTEGER NOT NULL,            -- 9900 / 24900 / 49900
+  amount_cents  INTEGER NOT NULL,            -- 15000 / 30000 / 69000
   agreement_url TEXT,                         -- link opened for e-sign
   client_uuid   TEXT UNIQUE,                 -- idempotency key from offline queue
   sold_at       TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))

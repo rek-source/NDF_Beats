@@ -11,7 +11,7 @@
 2. **No paid API calls, no real credentials.** Tracerly / Zillow / Census are **stubbed** (`src/adapters/*.stub.js`) and never invoked at runtime. All data comes from the mock seed.
 3. **Runnable with three commands:** `npm install && npm run seed && npm start`. Default `PORT=4178`, app served at `http://localhost:4178/`.
 4. **Data layer abstracted.** All SQL goes through `src/db/repo.js` (the repository). No route handler or scoring file touches `better-sqlite3` directly. Production can later swap the repo impl to Postgres without changing routes, scoring, or frontend.
-5. **No money/legal text invented.** Packages are fixed: **Essential $99 / Preferred $249 / Total Home $499** (annual). "Sold" links to the EXISTING agreement page; we do not re-author agreement copy.
+5. **No money/legal text invented.** Packages are fixed: **Essential $150 / Preferred $300 / Total Home $690** (annual; monthly-led $15/$30/$69 per mo). "Sold" links to the EXISTING agreement page; we do not re-author agreement copy.
 
 ---
 
@@ -199,7 +199,7 @@ CREATE TABLE IF NOT EXISTS sales (
   rep_id        TEXT NOT NULL REFERENCES reps(id),
   target_id     TEXT NOT NULL REFERENCES targets(id),
   package       TEXT NOT NULL CHECK (package IN ('essential','preferred','total_home')),
-  amount_cents  INTEGER NOT NULL,            -- 9900 / 24900 / 49900
+  amount_cents  INTEGER NOT NULL,            -- 15000 / 30000 / 69000
   agreement_url TEXT,                         -- link opened for e-sign
   client_uuid   TEXT UNIQUE,                 -- idempotency key from offline queue
   sold_at       TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
@@ -209,9 +209,9 @@ CREATE INDEX IF NOT EXISTS idx_sales_rep_time ON sales(rep_id, sold_at);
 
 **Package catalog (`src/config.js` constant, not a table — fixed by policy):**
 ```
-essential   -> { label: "Essential",  amount_cents: 9900 }
-preferred   -> { label: "Preferred",  amount_cents: 24900 }
-total_home  -> { label: "Total Home", amount_cents: 49900 }
+essential   -> { label: "Essential",  amount_cents: 15000 }
+preferred   -> { label: "Preferred",  amount_cents: 30000 }
+total_home  -> { label: "Total Home", amount_cents: 69000 }
 ```
 Agreement URL base (config): `/gbb/ndf/agreements/home-care-membership.html` (link target only; not fetched by backend).
 
@@ -302,7 +302,7 @@ body ->
 {
   "sale": {
     "id": "sale_...", "package": "preferred",
-    "amount_usd": 249, "amount_cents": 24900,
+    "amount_usd": 300, "amount_cents": 30000,
     "agreement_url": "/gbb/ndf/agreements/home-care-membership.html?pkg=preferred&target=tgt_...",
     "sold_at": "..."
   }
@@ -403,7 +403,7 @@ Exports `defaultProfile` — the editable Ideal-Client Profile: value band [min,
 - **Pins status-colored** (use brand high-contrast palette §10): unknocked=ink outline, not_home=muted, callback=bronze, refused/not_interested=red-700, sold=green-700. Tapping a pin or a list row opens the **door sheet**.
 - **Door sheet** (big, glove-friendly, min 64px touch targets): address + score + score factors; five big disposition buttons in fixed order: **Not home / Refused / Callback / Not interested / Sold**.
   - Non-sold tap → POST `/api/knocks` (queued if offline), sheet closes, pin recolors, list auto-advances to next `seq`.
-  - **Sold** tap → POST knock(disposition=sold) → show **package picker** (Essential $99 / Preferred $249 / Total Home $499) → POST `/api/sales` → on success open `sale.agreement_url` (the existing Care Plan agreement page) in a new tab/window for e-sign + first-visit booking.
+  - **Sold** tap → POST knock(disposition=sold) → show **package picker** (Essential $150 / Preferred $300 / Total Home $690) → POST `/api/sales` → on success open `sale.agreement_url` (the existing Care Plan agreement page) in a new tab/window for e-sign + first-visit booking.
 - **Offline tolerance (`offline.js`):** every knock/sale is written to a local queue (localStorage or IndexedDB) with a `client_uuid` BEFORE network attempt; a sync loop flushes the queue when online; server idempotency on `client_uuid` makes replays safe. Visible queue badge ("3 pending"). **Note in README:** Phase 1 offline is best-effort queue+replay; no service worker / no true offline map tiles.
 - Data flow: on load → GET rep's beats → pick active beat → GET beat+targets → render. All writes go through the queue module.
 - Reads brand from `styles/tokens.css` + `styles/app.css`. Defaults to the HIGH-CONTRAST variant (outdoor sunlight).
@@ -424,7 +424,7 @@ Exports `defaultProfile` — the editable Ideal-Client Profile: value band [min,
 Static KHB-branded curriculum (content sourced from the design doc §"Training module"). Sections, in order:
 1. **Why Care Plans** — value framing + **strict no-discount** language (priority/included services, never % off / member rate — per NDF policy).
 2. **The 5-step door approach** — approach, pattern interrupt, value pitch, trial close, book.
-3. **Pitch script** — the three packages ($99 / $249 / $499) framed by value, not price.
+3. **Pitch script** — the three packages ($150 / $300 / $690) framed by value, not price.
 4. **Objection handling** — price / "I'll DIY" / "ask my spouse" / "not interested," with scripted responses.
 5. **CA compliance** — solicitation rules + **3-day right-to-cancel** notice requirement (informational; do not reproduce legal text from agreements — link to the agreement page).
 6. **Role-play scenarios** + **ride-along checklist**.

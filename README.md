@@ -8,7 +8,7 @@ AI-scored **beats** (walkable target lists), log every door, and a live gamified
 seed. No paid APIs, no deploy, no real credentials. Tracerly / Zillow / Census
 are stubbed and never invoked at runtime.
 
-- Care Plan packages (fixed by policy): **Essential $99 / Preferred $249 / Total Home $499** (annual).
+- Care Plan packages (fixed by policy): **Essential $150 / Preferred $300 / Total Home $690** (annual; monthly-led $15/$30/$69 per mo).
 - Service area: **Stanislaus · San Joaquin · Merced** (California Central Valley).
 
 > Build contract: see [`SPEC.md`](./SPEC.md). It is authoritative for schema,
@@ -190,7 +190,7 @@ Notes on behavior worth knowing while testing:
   duplicate — this is what makes the offline queue safe to flush repeatedly.
 - **Server-authoritative pricing:** `POST /api/sales` ignores any client price.
   The amount is derived from the package catalog in `src/config.js`
-  (`essential` 9900 / `preferred` 24900 / `total_home` 49900 cents).
+  (`essential` 15000 / `preferred` 30000 / `total_home` 69000 cents).
 - **Sold is two steps:** a `sold` disposition on `POST /api/knocks` does *not*
   auto-create a sale. The client follows with `POST /api/sales` referencing the
   returned knock id, then opens `sale.agreement_url`.
@@ -342,8 +342,8 @@ delete the DB first: `rm -f data/ndf-beats.db*` then `npm run seed`.
 - **Local only.** Nothing here deploys, SSHes, or edits Caddy / live DBs / the hub.
 - **No paid API calls, no real credentials.** All data is the mock seed; adapters
   are stubs.
-- **No invented money/legal text.** Packages are fixed (Essential $99 / Preferred
-  $249 / Total Home $499). "Sold" links to the existing Care Plan agreement page;
+- **No invented money/legal text.** Packages are fixed (Essential $150 / Preferred
+  $300 / Total Home $690). "Sold" links to the existing Care Plan agreement page;
   this app does not re-author agreement copy.
 
 Production promotion (Postgres, real keys, Caddy `/beats` route, hub card) is
