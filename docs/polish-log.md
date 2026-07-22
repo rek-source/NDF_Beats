@@ -4,6 +4,38 @@ One entry per iteration of the overnight polish loop. Newest first.
 
 ---
 
+## 2026-07-22 — Unit-cover incomeToBand (scoring input) + brand-token audit
+
+**Backlog item 6 (brand tokens) → item 5 (coverage).** Started on backlog #6's
+"consistency with brand tokens" and audited every layout CSS file for raw hex
+that should be a token. Finding: the layout CSS is **already token-consistent** —
+`app.css` / `scoreboard.css` have zero raw hex; `training.css`'s hex are all
+`var(--token, #hex)` fallbacks (token wins, `tokens.css` loads first); and
+`admin.css`'s three raw-hex spots are *intentional and documented* (a
+surface-local `--muted` AA lift, and HC-theme-only mid-greys for the weight
+bars). Nothing to change without inventing churn — recorded and moved on.
+
+Pivoted to the next real coverage gap (#5): `census.js` had the codebase's worst
+branch coverage (28.57%). `incomeToBand` — a scoring input feeding
+`signals.income_band` — was exported but had **no direct test**; the "neutral on
+bad input → 5" guard and the top-band (`return 10`) branch were uncovered. New
+`test/income-band.test.js` pins the full decile map: bad/missing → 5, each
+threshold (upper-bound inclusive) → bands 1–9, above-all → 10, plus a mid-band
+case. `census.js` branch coverage **28.57% → 40.00%**, line 48 now covered.
+
+- Files: `test/income-band.test.js`.
+- Suite: 306 → 310 tests, all green.
+- Commit: `PENDING`
+- **Needs deploy?** No — tests only.
+
+### Note (next iteration)
+- `census.js`'s remaining uncovered lines (92-160) are the keyless-geocoder and
+  ACS HTTP paths (error branches, missing-field fallbacks). They need `fetch`
+  mocking per branch — the existing `census-acs.test.js` mocks one happy path.
+  A focused fetch-mock pass could lift them.
+
+---
+
 ## 2026-07-22 — Training quiz touch targets to the 64px iPad floor
 
 **Backlog item 6 (training).** The certification quiz is taken on an iPad, but
