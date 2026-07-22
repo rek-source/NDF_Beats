@@ -31,7 +31,7 @@ Watched it fail ("Owner-occupied: No") then pass. Bumped `app.js?v=r9 → r10`.
 - Files: `src/db/repo.js`, `src/routes/beats.routes.js`, `public/app.js`,
   `public/index.html`, `test/door-honesty.test.js`.
 - Suite: 277 → 291 tests, all green.
-- Commit: `PENDING`
+- Commit: `916182b`
 - **Needs deploy?** Yes — backend (repo/route) + frontend (app.js + cache-bust).
 
 ### Needs Ryan
