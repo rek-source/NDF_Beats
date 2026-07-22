@@ -4,6 +4,41 @@ One entry per iteration of the overnight polish loop. Newest first.
 
 ---
 
+## 2026-07-22 — Cover the app-level error handler (no HTML stack traces to reps)
+
+**Backlog item 5 (continued).** `server.js`'s centralized error handler is the
+last line of defense — any throwing middleware/route must return the JSON
+envelope `{error:'internal server error'}`, never leak an HTML stack trace to
+the rep app. It was uncovered. Because `express.json()` is the **first**
+middleware, a malformed JSON body throws a parse error that propagates straight
+to the handler — a deterministic trigger needing no route or auth.
+
+New `test/server-error-handler.test.js` (own throwaway DB + server) POSTs an
+invalid JSON body to `/api/knocks` and asserts a **500** with an
+`application/json` content-type and the exact `{error:'internal server error'}`
+envelope.
+
+`server.js` coverage: line **84.29% → 88.57%**. The remaining lines (63-70) are
+the `import.meta.url === argv[1]` CLI boot block (`getDb()` + `listen`) — runs
+only when the file is the entry script, not on import; not worth a test (same
+category as migrate's CLI shim).
+
+- Files: `test/server-error-handler.test.js`.
+- Suite: 337 → 338 tests, all green.
+- Commit: `PENDING`
+- **Needs deploy?** No — tests only.
+
+### Note — coverage sweep wrapping up
+- Every substantive source file is now ~90–100% covered. The only remaining gaps
+  are non-behavioral or fault-injection-only: CLI boot shims (`server.js` 63-70,
+  `migrate.js` 90-93), network retry/backoff (`addresses.js` overpass loop), the
+  write-route unique-constraint **race-recovery** paths, and corrupt-persisted-
+  profile fallbacks. Each needs a concurrency/fault seam; not worth contriving.
+  Future iterations should lean toward JSDoc accuracy / dead-code (backlog #7)
+  or a fresh feature-polish item rather than chasing these.
+
+---
+
 ## 2026-07-22 — Cover the additive-migration ALTER path (prod-upgrade mechanism)
 
 **Backlog item 5 (continued).** `ensureColumn` → `ALTER TABLE ADD COLUMN` is how
