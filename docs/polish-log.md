@@ -22,7 +22,7 @@ always records a real timestamp even from a device with a broken clock.
 - Files: `src/util/time.js` (new), `src/routes/sales.routes.js`,
   `src/routes/knocks.routes.js`, `test/util-time.test.js` (new).
 - Suite: 319 → 321 tests, all green.
-- Commit: `PENDING`
+- Commit: `fc3d6fa`
 - **Needs deploy?** Yes — backend refactor (behavior-preserving); Ryan batches it.
 
 ---
