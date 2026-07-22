@@ -48,6 +48,8 @@ CREATE TABLE IF NOT EXISTS targets (
   solicit_status  TEXT NOT NULL DEFAULT 'unknown'
                     CHECK (solicit_status IN ('unknown','clear','do_not_solicit')),
   known_signals   TEXT,                      -- JSON array of known signal keys (NULL = legacy row)
+  khb_project_dist_m   REAL,                 -- meters to nearest completed KHB project (NULL = not computed)
+  tract_owner_occ_rate REAL,                 -- Census-tract owner-occupancy rate 0..1 (NULL = unknown)
   ad_hoc          INTEGER NOT NULL DEFAULT 0,  -- 1 = rep-entered walk-in door, not ingested/scored
   created_at      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );

@@ -146,12 +146,13 @@ export function insertTarget(t) {
          (id, address, city, county, zip, lat, lng, value_cents, home_age,
           owner_occupied, tenure_years, recently_sold, income_band, score,
           no_soliciting, owner_occupied_known, solicit_status, known_signals,
-          ad_hoc)
+          ad_hoc, khb_project_dist_m, tract_owner_occ_rate)
        VALUES
          (@id, @address, @city, @county, @zip, @lat, @lng, @value_cents,
           @home_age, @owner_occupied, @tenure_years, @recently_sold,
           @income_band, @score, @no_soliciting, @owner_occupied_known,
-          @solicit_status, @known_signals, @ad_hoc)`,
+          @solicit_status, @known_signals, @ad_hoc, @khb_project_dist_m,
+          @tract_owner_occ_rate)`,
     )
     .run({
       ...t,
@@ -169,6 +170,8 @@ export function insertTarget(t) {
       solicit_status: t.solicit_status ?? (t.no_soliciting ? 'do_not_solicit' : 'unknown'),
       known_signals: t.known_signals ?? null,
       ad_hoc: t.ad_hoc ?? 0,
+      khb_project_dist_m: t.khb_project_dist_m ?? null,
+      tract_owner_occ_rate: t.tract_owner_occ_rate ?? null,
     });
 }
 

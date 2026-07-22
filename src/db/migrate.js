@@ -34,6 +34,11 @@ const ADDITIVE_COLUMNS = [
   // CHECK lives only in the fresh DDL (same pattern as solicit_status).
   ['beats', 'kind', "TEXT NOT NULL DEFAULT 'auto'"],
   ['targets', 'ad_hoc', 'INTEGER NOT NULL DEFAULT 0'],
+  // Neighbor-proof beats (2026-07-21): distance to the nearest completed KHB
+  // project + the door's Census-tract owner-occupancy rate (relaxed-gate
+  // input + honest "unknown — area ~74%" display). NULL = not computed.
+  ['targets', 'khb_project_dist_m', 'REAL'],
+  ['targets', 'tract_owner_occ_rate', 'REAL'],
 ];
 
 /** Add a column only if the table doesn't already have it (idempotent). */
