@@ -23,7 +23,7 @@ untested. New `test/assessor-lookup.test.js` (fetch stubbed):
 
 - Files: `test/assessor-lookup.test.js`.
 - Suite: 331 → 335 tests, all green.
-- Commit: `PENDING`
+- Commit: `f3ebc4f`
 - **Needs deploy?** No — tests only.
 
 ---
