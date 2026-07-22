@@ -484,6 +484,17 @@ body {
   border: 1px solid var(--hairline); border-radius: var(--radius);
 }
 .ad-pin__unlock:hover, .ad-rep__edit:hover, .ad-rep__toggle:hover { border-color: var(--bronze); color: var(--bronze-dark); }
+/* Rename control sits beside the map link in the beat-name cell — a quiet
+   secondary action. Own rule (not folded into the shared selector above) so the
+   44px touch-floor guard in admin-lifecycle-ui.test.js keeps matching. */
+.ad-beat__rename {
+  appearance: none; cursor: pointer; font: 600 13px var(--font-body);
+  min-height: 44px; padding: 8px 14px; margin-left: 8px;
+  background: var(--bg); color: var(--ink);
+  border: 1px solid var(--hairline); border-radius: var(--radius);
+}
+.ad-beat__rename:hover { border-color: var(--bronze); color: var(--bronze-dark); }
+.ad-beat__rename:disabled { opacity: 0.5; cursor: default; }
 .ad-pin__unlock { background: var(--bad); color: #fff; border-color: var(--bad); } /* urgent: rep can't sign in */
 .ad-pin__unlock:hover { color: #fff; opacity: 0.9; }
 .ad-rep__toggle.is-reactivate { color: var(--ok); border-color: var(--ok); }
@@ -492,6 +503,9 @@ body {
 .ad-rep__edit-form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; width: 100%; }
 .ad-rep__edit-form .ad-input { flex: 1 1 130px; min-width: 0; }
 .ad-rep__edit-form .ad-rep__edit-role { flex: 0 0 auto; }
+
+.ad-beat__edit-form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; width: 100%; }
+.ad-beat__edit-form .ad-input { flex: 1 1 140px; min-width: 0; }
 
 /* ===== /polish iter7: high-contrast (sunlight) theme refinements ===== */
 /* In HC, --hairline is #000, which turned the "Default" weight bar + legend

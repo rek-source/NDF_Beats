@@ -353,7 +353,8 @@
       // data-label drives the <=768px stacked-card reflow (td::before labels).
       return (
         '<tr' + (b.rep_id ? '' : ' class="is-unassigned"') + '>' +
-        '<td class="ad-beat__name" data-label="Beat" title="' + escapeHtml(b.name) + '"><button type="button" class="ad-beat__maplink" data-beat-id="' + escapeHtml(b.id) + '" data-beat-name="' + escapeHtml(b.name) + '" title="View ' + escapeHtml(b.name) + ' on a map">' + escapeHtml(b.name) + ' <span class="ad-beat__mappin" aria-hidden="true">&#9656;</span></button></td>' +
+        '<td class="ad-beat__name" data-label="Beat" title="' + escapeHtml(b.name) + '"><button type="button" class="ad-beat__maplink" data-beat-id="' + escapeHtml(b.id) + '" data-beat-name="' + escapeHtml(b.name) + '" title="View ' + escapeHtml(b.name) + ' on a map">' + escapeHtml(b.name) + ' <span class="ad-beat__mappin" aria-hidden="true">&#9656;</span></button>' +
+          '<button type="button" class="ad-beat__rename" data-beat-id="' + escapeHtml(b.id) + '" data-beat-name="' + escapeHtml(b.name) + '" aria-label="Rename ' + escapeHtml(b.name) + '" title="Rename this beat">Rename</button></td>' +
         '<td data-label="City">' + escapeHtml(b.city) + '</td>' +
         '<td class="ad-num" data-label="Doors">' + fmtInt(b.target_count) + '</td>' +
         '<td data-label="Status"><span class="ad-status ad-status--' + escapeHtml(b.status) + '">' + escapeHtml(b.status) + '</span></td>' +
@@ -734,9 +735,60 @@
   }
 
   function onBeatsClick(e) {
-    var btn = e.target.closest ? e.target.closest('.ad-beat__maplink') : null;
+    if (!e.target.closest) return;
+    var rename = e.target.closest('.ad-beat__rename');
+    if (rename) return openBeatRenamer(rename);
+    var btn = e.target.closest('.ad-beat__maplink');
     if (!btn) return;
     openBeatMap(btn.getAttribute('data-beat-id'), btn.getAttribute('data-beat-name'));
+  }
+
+  // ---- Rename a beat inline (backlog #3) — mirrors openRepEditor ----
+  // Auto-generated beat names ("Turlock · near El Capitan Dr N") are illegible
+  // in the field; a manager renames the beat here without leaving the overview.
+  function openBeatRenamer(btn) {
+    var beatId = btn.getAttribute('data-beat-id');
+    var name = btn.getAttribute('data-beat-name') || '';
+    var cell = btn.closest('.ad-beat__name');
+    if (!cell) return;
+    cell.innerHTML =
+      '<form class="ad-beat__edit-form" autocomplete="off">' +
+      '<input class="ad-input ad-beat__edit-name" type="text" value="' + escapeHtml(name) + '" aria-label="Beat name" placeholder="Beat name">' +
+      '<button type="submit" class="ad-pin__save ad-beat__edit-save">Save</button>' +
+      '<button type="button" class="ad-pin__cancel ad-beat__edit-cancel">Cancel</button>' +
+      '<span class="ad-pin__msg ad-beat__edit-msg" role="status"></span>' +
+      '</form>';
+    var form = cell.querySelector('.ad-beat__edit-form');
+    var nameEl = cell.querySelector('.ad-beat__edit-name');
+    var msg = cell.querySelector('.ad-beat__edit-msg');
+    var renameBtnSel = '.ad-beat__rename[data-beat-id="' + beatId + '"]';
+    var close = function () { reloadFocus(renameBtnSel); };
+    nameEl.focus();
+    cell.querySelector('.ad-beat__edit-cancel').addEventListener('click', close);
+    form.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') { ev.preventDefault(); close(); } });
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var nm = nameEl.value.trim();
+      if (!nm) { msg.textContent = 'Beat name is required.'; msg.className = 'ad-pin__msg ad-beat__edit-msg is-error'; nameEl.focus(); return; }
+      if (nm === name) { close(); return; }
+      var save = cell.querySelector('.ad-beat__edit-save');
+      save.disabled = true;
+      api('POST', '/admin/beats/' + encodeURIComponent(beatId) + '/rename', { name: nm }).then(function (r) {
+        if (r.ok) {
+          reloadFocus(renameBtnSel).then(function (ok) {
+            if (ok) { showBanner('Renamed beat to ' + nm + '.', 'ok'); setTimeout(hideBanner, 2000); }
+          });
+        } else {
+          save.disabled = false;
+          msg.textContent = (r.json && r.json.error) || ('Failed (HTTP ' + r.status + ')');
+          msg.className = 'ad-pin__msg ad-beat__edit-msg is-error';
+        }
+      }).catch(function (err) {
+        save.disabled = false;
+        msg.textContent = 'Network error: ' + (err && err.message ? err.message : 'unknown');
+        msg.className = 'ad-pin__msg ad-beat__edit-msg is-error';
+      });
+    });
   }
 
   // ---- boot ----

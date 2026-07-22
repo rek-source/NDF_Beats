@@ -4,6 +4,37 @@ One entry per iteration of the overnight polish loop. Newest first.
 
 ---
 
+## 2026-07-21 — Manager-portal beat rename UI
+
+**Backlog item 3.** Auto-generated beat names ("Turlock · near El Capitan Dr N",
+six near-identical) are illegible in the field. The rename **backend**
+(`POST /admin/beats/:id/rename`, `updateBeatName()`) and its route tests already
+existed — but there was no way to reach it from the manager portal. Added the
+UI: each beat row now has a **Rename** button beside the map link; clicking it
+swaps the name cell for an inline `input + Save/Cancel` editor (mirrors the
+existing rep inline-editor `openRepEditor`), POSTs to the existing endpoint,
+reloads the overview, and shows a confirmation banner. Empty names are blocked
+client-side; a no-op rename just closes; server errors surface inline. Escape
+cancels.
+
+CSS: `.ad-beat__rename` is its own pill rule at the **44px touch floor** (kept
+separate from the shared `.ad-pin__unlock, .ad-rep__edit, .ad-rep__toggle`
+selector so the touch-floor grep guard in `admin-lifecycle-ui.test.js` still
+matches — a first pass that folded it in broke that test, caught before commit).
+
+New `test/admin-beat-rename-ui.test.js` (file-scan wiring guard, the admin-UI
+test convention): asserts the rename button + `data-beat-id`, the inline form,
+the `/rename` POST, and the CSS. Watched it fail (3/3) then pass. Bumped
+`admin.js?v=a7 → a8` and `admin.css?v=a4 → a5`.
+
+- Files: `public/admin.js`, `public/styles/admin.css`, `public/admin.html`,
+  `test/admin-beat-rename-ui.test.js`.
+- Suite: 291 → 294 tests, all green.
+- Commit: `PENDING`
+- **Needs deploy?** Yes — frontend (admin.js/css + cache-busts).
+
+---
+
 ## 2026-07-21 — Door-sheet honesty display (owner-occupancy + KHB proximity)
 
 **Backlog item 2.** Two problems, one latent and serious:
