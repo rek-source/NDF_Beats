@@ -24,7 +24,7 @@ convention. Watched fail (2) → pass.
 - Files: `public/styles/training.css`, `public/training.html`,
   `test/training-touch-targets.test.js`.
 - Suite: 304 → 306 tests, all green.
-- Commit: `PENDING`
+- Commit: `14c7103`
 - **Needs deploy?** Yes — frontend (training.css + new cache-bust).
 
 ---
