@@ -26,7 +26,7 @@ token; added `scoreboard.css?v=s1` per rule 5 (still a relative path —
 - Files: `public/styles/scoreboard.css`, `public/scoreboard.html`,
   `test/scoreboard-touch-targets.test.js`.
 - Suite: 301 → 304 tests, all green.
-- Commit: `PENDING`
+- Commit: `07b66de`
 - **Needs deploy?** Yes — frontend (scoreboard.css + new cache-bust).
 
 ---
