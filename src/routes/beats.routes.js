@@ -10,6 +10,7 @@ import {
   getBeatById,
   getBeatTargets,
 } from '../db/repo.js';
+import { ownerOccupancyKnown } from '../scoring/compliance.js';
 
 export const beatsRouter = Router();
 
@@ -57,6 +58,10 @@ beatsRouter.get('/beats/:beatId', (req, res) => {
     value_usd: Math.round(t.value_cents / 100),
     home_age: t.home_age,
     owner_occupied: t.owner_occupied === 1,
+    // Tri-state honesty: false owner_occupied means EITHER verified renter OR
+    // "unknown". This flag lets the sheet tell them apart instead of printing
+    // an unknown door as a flat "No" (see src/scoring/compliance.js).
+    owner_occupied_known: ownerOccupancyKnown(t),
     tenure_years: t.tenure_years,
     score: t.score,
     no_soliciting: t.no_soliciting === 1,

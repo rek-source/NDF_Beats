@@ -583,19 +583,29 @@
     setActiveRow(targetId);
   }
 
+  // Honesty display for owner-occupancy. `owner_occupied` is only trustworthy
+  // when `owner_occupied_known` is true; otherwise the door was admitted on its
+  // Census tract rate and we must say so, not print a false "No" (backlog #2).
+  function ownerOccupiedLabel(t) {
+    if (t.owner_occupied_known) return t.owner_occupied ? 'Yes' : 'No';
+    if (t.tract_owner_occ_rate != null) {
+      return 'unknown — area ~' + Math.round(t.tract_owner_occ_rate * 100) + '%';
+    }
+    return 'unknown';
+  }
+
   function renderFactors(t) {
     var f = [
       ['Est. value', t.value_usd != null ? '$' + Number(t.value_usd).toLocaleString() : '—'],
       ['Home age', (t.home_age != null ? t.home_age + ' yrs' : '—')],
-      ['Owner-occupied', t.owner_occupied ? 'Yes' : 'No'],
+      ['Owner-occupied', ownerOccupiedLabel(t)],
       ['Tenure', (t.tenure_years != null ? t.tenure_years + ' yrs' : '—')]
     ];
-    // Honesty display: show tract owner-occupancy rate and project proximity
-    if (t.tract_owner_occ_rate != null) {
-      f.push(['Tract owner-occ rate', Math.round(t.tract_owner_occ_rate * 100) + '%']);
-    }
+    // Honesty display: proximity to a completed KHB project (a real buy signal,
+    // not a guess). The area owner-occupancy rate is folded into the
+    // Owner-occupied line above, so it is not repeated here.
     if (t.khb_project_dist_m != null) {
-      f.push(['Distance to KHB project', Math.round(t.khb_project_dist_m) + ' m']);
+      f.push(['Near completed KHB project', Math.round(t.khb_project_dist_m) + ' m away']);
     }
     els.sheetFactors.innerHTML = '';
     f.forEach(function (pair) {

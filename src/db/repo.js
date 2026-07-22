@@ -323,7 +323,7 @@ export function getBeatTargets(beatId) {
          t.id, t.address, t.city, t.zip, t.lat, t.lng,
          t.value_cents, t.home_age, t.owner_occupied, t.tenure_years,
          t.score, t.no_soliciting, t.owner_occupied_known, t.solicit_status,
-         t.known_signals,
+         t.known_signals, t.tract_owner_occ_rate, t.khb_project_dist_m,
          (SELECT k.disposition
             FROM knocks k
            WHERE k.beat_id = bt.beat_id AND k.target_id = t.id
