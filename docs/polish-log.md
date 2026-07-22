@@ -25,7 +25,7 @@ case. `census.js` branch coverage **28.57% → 40.00%**, line 48 now covered.
 
 - Files: `test/income-band.test.js`.
 - Suite: 306 → 310 tests, all green.
-- Commit: `PENDING`
+- Commit: `ad3d325`
 - **Needs deploy?** No — tests only.
 
 ### Note (next iteration)
