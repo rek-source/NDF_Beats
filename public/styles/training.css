@@ -445,6 +445,9 @@ a.link:hover { text-decoration-color: var(--bronze-dark, #A88560); }
   border: 1px solid var(--hairline, #E5DFD5);
   margin-bottom: 8px;
   cursor: pointer;
+  /* 64px iPad touch floor: the answer row is the tap target on a certification
+     tablet — a single-line option was only ~39px tall. */
+  min-height: 64px;
 }
 .quiz-q .choice:hover { background: rgba(140, 106, 74, 0.06); }
 .quiz-q .choice input { width: 20px; height: 20px; min-width: 20px; margin-top: 1px; accent-color: var(--bronze); }
@@ -478,7 +481,12 @@ a.link:hover { text-decoration-color: var(--bronze-dark, #A88560); }
   cursor: pointer;
   border-radius: var(--radius, 0);
   text-decoration: none;
-  display: inline-block;
+  /* 64px iPad touch floor; inline-flex + centered so the min-height is a real
+     hit area for both <button> and <a class="btn"> uses. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 64px;
 }
 .btn:hover { background: var(--ink-dark, #161412); }
 .btn.secondary { background: transparent; color: var(--ink); }

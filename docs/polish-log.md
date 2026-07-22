@@ -4,6 +4,31 @@ One entry per iteration of the overnight polish loop. Newest first.
 
 ---
 
+## 2026-07-22 — Training quiz touch targets to the 64px iPad floor
+
+**Backlog item 6 (training).** The certification quiz is taken on an iPad, but
+its two interactive control types sat below the 64px touch floor the rep app,
+scoreboard, and now this page share: each answer row (`.quiz-q .choice`) was
+only ~39px tall for a single-line option, and the action buttons (`.btn` —
+"Grade my quiz", "Reset", "Print certificate") were ~45px.
+
+Raised `.quiz-q .choice` to `min-height: 64px` (the whole row is the tap area)
+and `.btn` to `min-height: 64px` with `display: inline-flex` + centering so the
+floor is a real hit area for both `<button>` and `<a class="btn">`.
+Colors/typography untouched — `tokens.css` frozen, layout file only. Added a
+`training.css?v=t1` cache-bust (was untokenized), still a relative path.
+
+New `test/training-touch-targets.test.js` mirrors the scoreboard/admin CSS-scan
+convention. Watched fail (2) → pass.
+
+- Files: `public/styles/training.css`, `public/training.html`,
+  `test/training-touch-targets.test.js`.
+- Suite: 304 → 306 tests, all green.
+- Commit: `PENDING`
+- **Needs deploy?** Yes — frontend (training.css + new cache-bust).
+
+---
+
 ## 2026-07-22 — Scoreboard touch targets to the 64px iPad floor
 
 **Backlog item 6.** The scoreboard's tappable header controls sat below the
