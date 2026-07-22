@@ -4,6 +4,30 @@ One entry per iteration of the overnight polish loop. Newest first.
 
 ---
 
+## 2026-07-22 — Dedupe the sale serializer (shapeSale) across sale entry points
+
+**Backlog item 7 (dedupe) + item 5 (coverage).** The `/api` sale response shape
+was written twice — `shapeSale` in `sales.routes.js` and an identical
+`shapeManualSale` in `knocks.routes.js` (the manual walk-in-sale path). Two sale
+entry points serializing independently is exactly how a field silently drifts
+(e.g. one gains `amount_usd` rounding and the other doesn't).
+
+Extracted the single shape to `src/routes/serializers.js` and used it in both
+routes (removing `shapeSale` from sales and `shapeManualSale` from knocks; both
+call sites now call the shared `shapeSale`). New `test/serializers.test.js` pins
+the contract: exposes `id/package/amount_cents/agreement_url/sold_at` plus a
+derived `amount_usd` (= cents / 100), and does **not** leak internal columns
+(`knock_id`, `rep_id`, `target_id`, `client_uuid`). Output is byte-identical to
+both originals, so the manual-knock and sales flows are unchanged.
+
+- Files: `src/routes/serializers.js` (new), `src/routes/sales.routes.js`,
+  `src/routes/knocks.routes.js`, `test/serializers.test.js` (new).
+- Suite: 321 → 323 tests, all green.
+- Commit: `PENDING`
+- **Needs deploy?** Yes — backend refactor (behavior-preserving); Ryan batches it.
+
+---
+
 ## 2026-07-22 — Dedupe normalizeTimestamp into a shared, tested util
 
 **Backlog item 7 (dedupe) + item 5 (coverage).** Same pattern as the previous

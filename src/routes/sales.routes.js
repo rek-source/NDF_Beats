@@ -9,6 +9,7 @@ import { randomUUID } from 'node:crypto';
 import { PACKAGE_CATALOG, PACKAGE_KEYS, buildAgreementUrl } from '../config.js';
 import { isUniqueViolation } from '../db/errors.js';
 import { normalizeTimestamp } from '../util/time.js';
+import { shapeSale } from './serializers.js';
 import {
   getSaleByClientUuid,
   getKnockById,
@@ -17,17 +18,6 @@ import {
 } from '../db/repo.js';
 
 export const salesRouter = Router();
-
-function shapeSale(s) {
-  return {
-    id: s.id,
-    package: s.package,
-    amount_usd: Math.round(s.amount_cents) / 100,
-    amount_cents: s.amount_cents,
-    agreement_url: s.agreement_url,
-    sold_at: s.sold_at,
-  };
-}
 
 salesRouter.post('/sales', (req, res) => {
   const body = req.body ?? {};

@@ -26,6 +26,7 @@ import {
 } from '../db/repo.js';
 import { isUniqueViolation } from '../db/errors.js';
 import { normalizeTimestamp } from '../util/time.js';
+import { shapeSale } from './serializers.js';
 
 export const knocksRouter = Router();
 
@@ -115,7 +116,7 @@ knocksRouter.post('/knocks/manual', async (req, res) => {
       return res.status(200).json({
         knock: shapeKnock(existing),
         reused: true,
-        sale: sale ? shapeManualSale(sale) : null,
+        sale: sale ? shapeSale(sale) : null,
       });
     }
   }
@@ -193,11 +194,6 @@ knocksRouter.post('/knocks/manual', async (req, res) => {
     target: { id: out.target_id, address, city: (b.city || beat.city || '—'),
               lat, lng, score: 0, ad_hoc: true, beat_id: beat.id },
     beat: { id: beat.id, name: beat.name, kind: beat.kind },
-    sale: out.sale ? shapeManualSale(out.sale) : null,
+    sale: out.sale ? shapeSale(out.sale) : null,
   });
 });
-
-function shapeManualSale(s) {
-  return { id: s.id, package: s.package, amount_usd: Math.round(s.amount_cents) / 100,
-    amount_cents: s.amount_cents, agreement_url: s.agreement_url, sold_at: s.sold_at };
-}
