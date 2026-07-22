@@ -144,6 +144,18 @@ test('5.3 POST knock — derive answered, validate, idempotent', async () => {
   assert.equal(bad.status, 400);
   assert.equal(bad.json.error, 'invalid disposition');
 
+  // missing beat_id / target_id (valid disposition so we clear that gate first)
+  const noBeat = await authed('POST', '/api/knocks', {
+    target_id: target.id, rep_id: repId, disposition: 'not_home',
+  });
+  assert.equal(noBeat.status, 400);
+  assert.equal(noBeat.json.error, 'beat_id and target_id are required');
+  const noTarget = await authed('POST', '/api/knocks', {
+    beat_id: beat.id, rep_id: repId, disposition: 'not_home',
+  });
+  assert.equal(noTarget.status, 400);
+  assert.equal(noTarget.json.error, 'beat_id and target_id are required');
+
   // not_home => answered false
   const cu = randomUUID();
   const nh = await authed('POST', '/api/knocks', {

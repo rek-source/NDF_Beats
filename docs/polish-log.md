@@ -4,6 +4,30 @@ One entry per iteration of the overnight polish loop. Newest first.
 
 ---
 
+## 2026-07-22 — Cover the knocks-route missing-fields validation branch
+
+**Backlog item 5 (continued).** `POST /api/knocks` returns 400
+`"beat_id and target_id are required"` when either id is absent — but that
+branch (knocks.routes.js:57-59) had no test; only the invalid-disposition and
+not-found branches were asserted. Added both cases (missing `beat_id`, missing
+`target_id`) to the existing 5.3 knock test, each sending a valid disposition so
+it clears the disposition gate and actually reaches the required-fields check.
+`knocks.routes.js` branch coverage **81.82% → 83.33%**, line **92.66% →
+93.58%**. Behavior-only, no source change.
+
+- Files: `test/api.test.js`.
+- Suite: 316 tests (assertions added to an existing test), all green.
+- Commit: `PENDING`
+- **Needs deploy?** No — tests only.
+
+### Note
+- The last knocks.routes.js gap (83-89, 212-218) is the same unique-constraint
+  **race-recovery** path flagged for `sales.routes.js` — both share the
+  `isUniqueViolation` re-check idiom and both need a fault-injection seam to test
+  deterministically. A single future pass could add that seam and cover both.
+
+---
+
 ## 2026-07-22 — Cover census.js error/fallback branches (never-throw contract)
 
 **Backlog item 5 (continued).** `getDemographics` promises to *always resolve* —
