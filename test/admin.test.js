@@ -107,6 +107,13 @@ test('GET /api/admin/profile — default vs learned Ideal-Client weights', async
   // the seed includes sales, so the model should have learned something
   assert.ok(r.json.learned && typeof r.json.learned.n_sold === 'number');
   assert.ok(r.json.learned.n_sold > 0);
+
+  // KHB proximity distance band so the portal can explain what "near" means
+  // (the weight alone doesn't say a door within 150 m counts as a full match).
+  const band = r.json.khb_proximity;
+  assert.ok(band && typeof band.full_credit_m === 'number', 'khb full_credit_m present');
+  assert.ok(typeof band.falloff_m === 'number', 'khb falloff_m present');
+  assert.ok(band.full_credit_m > 0 && band.falloff_m > 0, 'band radii are positive');
 });
 
 test('POST /api/reps — create rep, validate, dedupe email', async () => {

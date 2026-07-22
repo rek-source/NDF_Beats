@@ -156,6 +156,18 @@
       var arrow = Math.abs(delta) < 0.005 ? '' :
         (delta > 0 ? '<span class="ad-w__delta is-up">&#9650; ' + pct(delta) + '</span>'
                    : '<span class="ad-w__delta is-down">&#9660; ' + pct(-delta) + '</span>');
+      // For the proximity signal, caption the weight bar with the actual radius
+      // that defines "near" — the weight alone doesn't say a door within 150 m
+      // is a full match while one past 500 m scores 0.
+      var note = '';
+      if (s.key === 'khb_proximity') {
+        var band = p.khb_proximity;
+        if (band && band.full_credit_m != null && band.falloff_m != null) {
+          var zero = band.full_credit_m + band.falloff_m;
+          note = '<div class="ad-w__note">Full credit within ' + fmtInt(band.full_credit_m) +
+            ' m of a completed KHB project; fades to 0 by ' + fmtInt(zero) + ' m.</div>';
+        }
+      }
       return (
         '<div class="ad-w">' +
         '  <div class="ad-w__label">' + escapeHtml(s.label) + arrow + '</div>' +
@@ -163,6 +175,7 @@
         '    <div class="ad-w__row"><div class="ad-w__bar ad-w__bar--default" style="width:' + (d / max * 100).toFixed(1) + '%"></div><span class="ad-w__pct">' + pct(d) + '</span></div>' +
         '    <div class="ad-w__row"><div class="ad-w__bar ad-w__bar--learned" style="width:' + (l / max * 100).toFixed(1) + '%"></div><span class="ad-w__pct">' + pct(l) + '</span></div>' +
         '  </div>' +
+        note +
         '</div>'
       );
     }).join('');

@@ -367,6 +367,8 @@ body {
 }
 .ad-w__bar--default { background: var(--hairline); outline: 1px solid var(--muted); outline-offset: -1px; }
 .ad-w__bar--learned { background: var(--bronze); }
+/* Proximity-band caption spans both grid columns, sits under the signal's bars. */
+.ad-w__note { grid-column: 1 / -1; font-size: 11px; color: var(--muted); margin-top: 2px; }
 
 /* -------------------------------------------------------------- footer ---*/
 .ad-footer {

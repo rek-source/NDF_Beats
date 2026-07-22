@@ -167,6 +167,10 @@ adminRouter.get('/admin/profile', (_req, res) => {
     active_version: persisted ? persisted.version : (defaultProfile.version ?? 1),
     active_approved_by: persisted ? persisted.approved_by : null,
     active_weights: { ...profile.weights },
+    // KHB proximity distance band: full credit within full_credit_m of a
+    // completed project, linear falloff to 0 across falloff_m more. Lets the
+    // portal explain what "near" means, not just how heavily it's weighted.
+    khb_proximity: { ...profile.khb_proximity },
     weights: { ...learnedProfile.weights }, // learning PREVIEW (not yet applied)
     // null until at least one sale has been observed (nothing to learn yet).
     learned: learnedDiffers ? learnedProfile.learned : null,

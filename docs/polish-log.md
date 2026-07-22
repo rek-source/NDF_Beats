@@ -4,6 +4,39 @@ One entry per iteration of the overnight polish loop. Newest first.
 
 ---
 
+## 2026-07-21 — Surface the KHB proximity distance band in the profile card
+
+**Backlog item 4 (first half).** The ICP profile card already renders the
+`khb_proximity` *weight* (0.22, labeled "Near Completed KHB Project") — but not
+the *radius* that defines "near." A manager could see the signal matters without
+knowing a door within 150 m is a full match while one past 500 m scores 0.
+
+Added the band to `GET /api/admin/profile` (`khb_proximity: { full_credit_m,
+falloff_m }`, straight from the active profile) and a `.ad-w__note` caption under
+that signal's bars: "Full credit within 150 m of a completed KHB project; fades
+to 0 by 500 m." The 500 = `full_credit_m + falloff_m` derivation matches the
+scoring formula in `src/scoring/scoring.js` exactly (verified before wording it),
+honoring the honesty rule.
+
+Tests: extended the `/admin/profile` route test in `admin.test.js` with a
+band-shape assertion; new `test/admin-profile-khb-ui.test.js` wiring guard for
+the client reading the band + rendering the note. Watched fail (3) → pass.
+Bumped `admin.js?v=a8 → a9`, `admin.css?v=a5 → a6`.
+
+- Files: `src/routes/admin.routes.js`, `public/admin.js`,
+  `public/styles/admin.css`, `public/admin.html`, `test/admin.test.js`,
+  `test/admin-profile-khb-ui.test.js`.
+- Suite: 294 → 296 tests, all green.
+- Commit: `PENDING`
+- **Needs deploy?** Yes — backend (route) + frontend (admin.js/css + cache-busts).
+
+### Note (next iteration)
+- Backlog #4 second half — "make the Create-a-Beat card show validation errors
+  clearly" — is still open. The card currently only guards name/city client-side
+  and surfaces server errors as a flat string; worth a dedicated pass.
+
+---
+
 ## 2026-07-21 — Manager-portal beat rename UI
 
 **Backlog item 3.** Auto-generated beat names ("Turlock · near El Capitan Dr N",
