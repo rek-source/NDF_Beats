@@ -322,15 +322,15 @@ test('overview — pin_set transitions from false to true after admin sets the P
 // 6. GET /api/admin/profile — signals array structure; learned: null when no sales
 // ---------------------------------------------------------------------------
 
-test('profile — signals array has exactly 6 entries with correct keys and labels', async () => {
+test('profile — signals array has exactly 7 entries with correct keys and labels', async () => {
   const r = await api('GET', '/api/admin/profile');
   assert.equal(r.status, 200);
 
   const { signals } = r.json;
   assert.ok(Array.isArray(signals), 'signals must be an array');
-  assert.equal(signals.length, 6, 'must have exactly 6 signal entries');
+  assert.equal(signals.length, 7, 'must have exactly 7 signal entries');
 
-  const expectedKeys = ['value', 'home_age', 'owner_occupied', 'tenure', 'recently_sold', 'income_band'];
+  const expectedKeys = ['value', 'home_age', 'owner_occupied', 'tenure', 'recently_sold', 'income_band', 'khb_proximity'];
   const expectedLabels = {
     value: 'Home Value',
     home_age: 'Home Age',
@@ -338,6 +338,7 @@ test('profile — signals array has exactly 6 entries with correct keys and labe
     tenure: 'Owner Tenure',
     recently_sold: 'Recently Sold',
     income_band: 'Income Band',
+    khb_proximity: 'Near Completed KHB Project',
   };
 
   for (const { key, label } of signals) {

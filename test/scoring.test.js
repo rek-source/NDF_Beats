@@ -49,10 +49,12 @@ test('§6.1 an ideal-fit target outscores a poor-fit target', () => {
   const ideal = {
     value_cents: 45_000_000, home_age: 35, owner_occupied: 1,
     tenure_years: 30, recently_sold: 1, income_band: 6,
+    khb_project_dist_m: 60,
   };
   const poor = {
     value_cents: 5_000_000, home_age: 2, owner_occupied: 0,
     tenure_years: 0, recently_sold: 0, income_band: 1,
+    khb_project_dist_m: 5000,
   };
   const hi = scoreTarget(ideal, defaultProfile);
   const lo = scoreTarget(poor, defaultProfile);
@@ -319,6 +321,6 @@ test('§6.3 updateWeights is deterministic and does not mutate the input', () =>
   const b = updateWeights(ks, [], defaultProfile);
   assert.deepEqual(a.weights, b.weights);
   // input profile weights untouched
-  assert.equal(defaultProfile.weights.value, 0.18);
+  assert.equal(defaultProfile.weights.value, 0.14);
   assert.notEqual(a, defaultProfile); // a learned profile is a new object
 });

@@ -99,7 +99,19 @@ export function subScores(target, profile = defaultProfile) {
       )
     : null;
 
-  return { value, home_age, owner_occupied, tenure, recently_sold, income_band };
+  // KHB proximity: meters to the nearest completed KHB project (neighbor
+  // proof). Full credit inside full_credit_m, linear falloff to 0 across
+  // falloff_m more. A known-but-far distance scores 0 (still counts toward
+  // coverage); unknown stays unknown.
+  const khb_proximity = known(target.khb_project_dist_m)
+    ? clamp01(
+        1 -
+          Math.max(0, Number(target.khb_project_dist_m) - profile.khb_proximity.full_credit_m) /
+            profile.khb_proximity.falloff_m,
+      )
+    : null;
+
+  return { value, home_age, owner_occupied, tenure, recently_sold, income_band, khb_proximity };
 }
 
 /**

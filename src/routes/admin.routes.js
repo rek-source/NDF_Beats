@@ -63,7 +63,7 @@ adminRouter.get('/admin/whoami', (req, res) => {
   res.json({ user: req.adminUser });
 });
 
-// Human labels for the 6 scoring signals (manager-portal readout).
+// Human labels for the scoring signals (manager-portal readout).
 const SIGNAL_LABELS = {
   value: 'Home Value',
   home_age: 'Home Age',
@@ -71,6 +71,7 @@ const SIGNAL_LABELS = {
   tenure: 'Owner Tenure',
   recently_sold: 'Recently Sold',
   income_band: 'Income Band',
+  khb_proximity: 'Near Completed KHB Project',
 };
 
 const ROLES = new Set(['rep', 'manager']);

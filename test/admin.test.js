@@ -102,7 +102,7 @@ test('GET /api/admin/profile — default vs learned Ideal-Client weights', async
   assert.ok(Math.abs(sum - 1) < 1e-6, `learned weights sum ${sum}`);
 
   // signals list (ordering for the UI) + learned provenance key present
-  assert.ok(Array.isArray(r.json.signals) && r.json.signals.length === 6);
+  assert.ok(Array.isArray(r.json.signals) && r.json.signals.length === 7);
   assert.ok('learned' in r.json); // null when no sales; object once learned
   // the seed includes sales, so the model should have learned something
   assert.ok(r.json.learned && typeof r.json.learned.n_sold === 'number');

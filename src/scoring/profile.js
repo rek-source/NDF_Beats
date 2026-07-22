@@ -95,17 +95,30 @@ export const defaultProfile = Object.freeze({
   }),
 
   /**
+   * Proximity to the nearest COMPLETED KHB project (meters). Neighbor-proof
+   * marketing (2026-07-21): a finished six-figure remodel nearby is both
+   * social proof at the door and a wealth-clustering signal. Full credit
+   * within `full_credit_m`; linear falloff to 0 across `falloff_m` more.
+   */
+  khb_proximity: Object.freeze({
+    full_credit_m: 150,
+    falloff_m: 350,
+  }),
+
+  /**
    * Weights per signal. MUST sum to 1.0 (validated below).
    * owner_occupied is the dominant gate; value/income shape affordability;
-   * age/tenure/recently_sold capture maintenance need + buyer motivation.
+   * age/tenure/recently_sold capture maintenance need + buyer motivation;
+   * khb_proximity is the neighbor-proof signal (completed-project radius).
    */
   weights: Object.freeze({
-    value: 0.18,
-    home_age: 0.18,
-    owner_occupied: 0.26,
-    tenure: 0.14,
-    recently_sold: 0.10,
-    income_band: 0.14,
+    value: 0.14,
+    home_age: 0.14,
+    owner_occupied: 0.20,
+    tenure: 0.11,
+    recently_sold: 0.08,
+    income_band: 0.11,
+    khb_proximity: 0.22,
   }),
 });
 
@@ -117,6 +130,7 @@ export const SIGNAL_KEYS = Object.freeze([
   'tenure',
   'recently_sold',
   'income_band',
+  'khb_proximity',
 ]);
 
 const WEIGHT_SUM_TOLERANCE = 1e-9;

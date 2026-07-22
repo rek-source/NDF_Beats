@@ -50,14 +50,26 @@ export function ownerOccupancyKnown(target) {
   return true;
 }
 
+// Relaxed owner-occupancy policy (owner decision, 2026-07-21): with a $0 data
+// budget there is no per-door verification source, so UNKNOWN owner-occupancy
+// is admitted when the door's Census tract owner-occupancy rate clears this
+// floor. Probabilistic, and surfaced honestly in the app ("unknown — area
+// ~74%"); a KNOWN renter or any do-not-solicit flag still always excludes.
+export const TRACT_OWNER_OCC_FLOOR = 0.6;
+
+function tractRateClears(target) {
+  const rate = Number(target.tract_owner_occ_rate);
+  return Number.isFinite(rate) && rate >= TRACT_OWNER_OCC_FLOOR;
+}
+
 /**
- * HARD eligibility gate for beat inclusion / knocking.
- * @returns {boolean} true ONLY when the door is verified owner-occupied AND
- *          carries no do-not-solicit flag.
+ * Eligibility gate for beat inclusion / knocking.
+ * @returns {boolean} true when the door carries no do-not-solicit flag AND is
+ *          either verified owner-occupied or unknown-in-a-high-owner-tract.
  */
 export function isKnockEligible(target) {
   if (solicitStatusOf(target) === SOLICIT_STATUS.DO_NOT_SOLICIT) return false;
-  if (!ownerOccupancyKnown(target)) return false; // unknown is NOT safe
+  if (!ownerOccupancyKnown(target)) return tractRateClears(target);
   return Number(target.owner_occupied) === 1;
 }
 
@@ -70,7 +82,11 @@ export function partitionByEligibility(targets) {
   const excluded = { dnc: 0, ownerUnknown: 0, nonOwner: 0 };
   for (const t of targets) {
     if (solicitStatusOf(t) === SOLICIT_STATUS.DO_NOT_SOLICIT) { excluded.dnc += 1; continue; }
-    if (!ownerOccupancyKnown(t)) { excluded.ownerUnknown += 1; continue; }
+    if (!ownerOccupancyKnown(t)) {
+      if (tractRateClears(t)) { eligible.push(t); continue; }
+      excluded.ownerUnknown += 1;
+      continue;
+    }
     if (Number(t.owner_occupied) !== 1) { excluded.nonOwner += 1; continue; }
     eligible.push(t);
   }
