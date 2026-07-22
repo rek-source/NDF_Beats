@@ -20,7 +20,7 @@ intentionally left.
 
 - Files: `test/addresses-city.test.js`.
 - Suite: 338 → 339 tests, all green.
-- Commit: `PENDING`
+- Commit: `304f68e`
 - **Needs deploy?** No — tests only.
 
 ### Loop stopped here (Ryan: "stop after this next loop")
