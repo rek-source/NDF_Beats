@@ -4,6 +4,27 @@ One entry per iteration of the overnight polish loop. Newest first.
 
 ---
 
+## 2026-07-22 — Cover validateProfile's four rejection branches
+
+**Backlog item 5 (continued).** `validateProfile` is the fail-loud guard on the
+ICP scoring weights — a malformed profile must throw at startup / on approval
+rather than silently produce garbage scores. But every existing caller passes it
+a **valid** profile, so all four rejection branches were uncovered (profile.js
+was at 42.86% branch). New `test/profile-validate.test.js` pins each throw:
+non-object profile, missing/non-object `weights`, a weight that isn't a
+non-negative number (NaN / negative / missing / non-number), and weights that
+don't sum to 1 — plus the success chaining return.
+
+`profile.js` coverage: line **94.15% → 100%**, branch **42.86% → 100%**, funcs
+100%. Tests only, no source change.
+
+- Files: `test/profile-validate.test.js`.
+- Suite: 323 → 328 tests, all green.
+- Commit: `PENDING`
+- **Needs deploy?** No — tests only.
+
+---
+
 ## 2026-07-22 — Dedupe the sale serializer (shapeSale) across sale entry points
 
 **Backlog item 7 (dedupe) + item 5 (coverage).** The `/api` sale response shape
