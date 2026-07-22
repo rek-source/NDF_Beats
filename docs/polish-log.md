@@ -4,6 +4,31 @@ One entry per iteration of the overnight polish loop. Newest first.
 
 ---
 
+## 2026-07-22 — Dedupe isUniqueViolation into a shared, tested util
+
+**Backlog item 7 (dedupe) + item 5 (coverage).** `isUniqueViolation` was
+copy-pasted **byte-for-byte** in both `sales.routes.js` and `knocks.routes.js`,
+and only reachable through a hard-to-trigger write race — so it sat uncovered in
+both files (the recurring "race-recovery" note in the last two entries).
+
+Extracted it to `src/db/errors.js` (one definition), imported it in both routes,
+and deleted the two local copies. Now it's directly unit-testable without a
+concurrency seam: new `test/db-errors.test.js` covers the whole classifier —
+any `SQLITE_CONSTRAINT*` code → true, other sqlite codes → false, and
+missing/non-string code or null/undefined → false. Wrapped the return in
+`Boolean(...)` so it's always a strict boolean (the old versions returned the
+falsy `err` itself); the call sites only use it in a boolean `if`, so behavior
+is unchanged.
+
+- Files: `src/db/errors.js` (new), `src/routes/sales.routes.js`,
+  `src/routes/knocks.routes.js`, `test/db-errors.test.js` (new).
+- Suite: 316 → 319 tests, all green.
+- Commit: `PENDING`
+- **Needs deploy?** Yes — backend (route refactor; behavior-preserving). Ryan
+  batches it; no rush since behavior is identical.
+
+---
+
 ## 2026-07-22 — Cover the knocks-route missing-fields validation branch
 
 **Backlog item 5 (continued).** `POST /api/knocks` returns 400

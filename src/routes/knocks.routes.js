@@ -24,6 +24,7 @@ import {
   getSaleByKnockId,
   transaction,
 } from '../db/repo.js';
+import { isUniqueViolation } from '../db/errors.js';
 
 export const knocksRouter = Router();
 
@@ -207,12 +208,4 @@ function normalizeTimestamp(input) {
     if (!Number.isNaN(d.getTime())) return d.toISOString();
   }
   return new Date().toISOString();
-}
-
-function isUniqueViolation(err) {
-  return (
-    err &&
-    typeof err.code === 'string' &&
-    err.code.startsWith('SQLITE_CONSTRAINT')
-  );
 }

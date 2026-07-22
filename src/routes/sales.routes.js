@@ -7,6 +7,7 @@
 import { Router } from 'express';
 import { randomUUID } from 'node:crypto';
 import { PACKAGE_CATALOG, PACKAGE_KEYS, buildAgreementUrl } from '../config.js';
+import { isUniqueViolation } from '../db/errors.js';
 import {
   getSaleByClientUuid,
   getKnockById,
@@ -106,12 +107,4 @@ function normalizeTimestamp(input) {
     if (!Number.isNaN(d.getTime())) return d.toISOString();
   }
   return new Date().toISOString();
-}
-
-function isUniqueViolation(err) {
-  return (
-    err &&
-    typeof err.code === 'string' &&
-    err.code.startsWith('SQLITE_CONSTRAINT')
-  );
 }
