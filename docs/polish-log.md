@@ -4,6 +4,39 @@ One entry per iteration of the overnight polish loop. Newest first.
 
 ---
 
+## 2026-07-22 — Cover the per-city address pull (addresses.js)
+
+**Backlog item 5 (continued).** `addresses.js` was the weakest source file
+(76.78% line / 44% funcs): only `getAddressesNearPoint` (the radius pull) had a
+test, so `countyForCity`, `getCandidateAddresses` (the per-city pull), and
+`buildQuery` were all uncovered. New `test/addresses-city.test.js` (fetch
+stubbed, never hits Overpass):
+
+- `countyForCity` resolves every in-area city to its county and rejects
+  out-of-area / undefined → null;
+- `getCandidateAddresses('San Francisco')` **rejects** before any fetch
+  (service-area guard);
+- a mocked Overpass response drives the happy path: the query scopes to
+  California + the named city, and elements normalize/dedupe (duplicate door
+  dropped, street-less junk dropped, fallback city applied, missing ZIP stays
+  null for ingestion to backfill).
+
+`addresses.js` coverage: line **76.78% → 93.36%**, funcs **44% → 77.78%**,
+branch **76% → 81%**. Tests only.
+
+- Files: `test/addresses-city.test.js`.
+- Suite: 328 → 331 tests, all green.
+- Commit: `PENDING`
+- **Needs deploy?** No — tests only.
+
+### Note
+- The last addresses.js gap (109-123) is the `overpass()` 429/504 retry+backoff
+  loop — network timing behavior; a deterministic test needs a fetch mock that
+  returns a rate-limit status then succeeds. Deferred (same family as the route
+  race-recovery seam).
+
+---
+
 ## 2026-07-22 — Cover validateProfile's four rejection branches
 
 **Backlog item 5 (continued).** `validateProfile` is the fail-loud guard on the
