@@ -17,7 +17,7 @@ it clears the disposition gate and actually reaches the required-fields check.
 
 - Files: `test/api.test.js`.
 - Suite: 316 tests (assertions added to an existing test), all green.
-- Commit: `PENDING`
+- Commit: `729dba1`
 - **Needs deploy?** No — tests only.
 
 ### Note
