@@ -60,3 +60,11 @@ test('getCandidateAddresses builds a city query and normalizes/dedupes doors', a
   assert.equal(rows[1].city, 'Modesto', 'fallback city applied when tags omit it');
   assert.equal(rows[1].zip, null, 'missing ZIP stays null for ingestion to backfill');
 });
+
+test('a non-retryable Overpass error propagates (loud ingest failure, no silent empty)', async (t) => {
+  t.after(() => { globalThis.fetch = realFetch; });
+  // 400 is NOT in the retryable set (429/504), so overpass() throws immediately
+  // — no backoff/sleep — rather than returning zero doors.
+  globalThis.fetch = async () => new Response('bad request', { status: 400 });
+  await assert.rejects(() => getCandidateAddresses('Modesto'), /Overpass HTTP 400/);
+});

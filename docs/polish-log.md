@@ -4,6 +4,50 @@ One entry per iteration of the overnight polish loop. Newest first.
 
 ---
 
+## 2026-07-22 — Cover the non-retryable Overpass error (final iteration; loop stopped)
+
+**Backlog item 5 (final).** Closing the last cheap `addresses.js` gap: a
+non-retryable Overpass error (e.g. HTTP 400 — not in the 429/504 retry set) must
+`throw` immediately so an ingest run fails **loudly** rather than silently
+returning zero doors and building an empty beat. Added a case to
+`test/addresses-city.test.js`: fetch returns 400 → `getCandidateAddresses`
+rejects with `/Overpass HTTP 400/` (no backoff/sleep, so the test is fast).
+
+`addresses.js` coverage: line **93.36% → 96.21%**, branch **81% → 85%**. The only
+remaining gap (112-119) is the 429/504 retry+backoff loop, which sleeps
+2–8 s per attempt — too slow/flaky for the suite without a fake-timer seam;
+intentionally left.
+
+- Files: `test/addresses-city.test.js`.
+- Suite: 338 → 339 tests, all green.
+- Commit: `PENDING`
+- **Needs deploy?** No — tests only.
+
+### Loop stopped here (Ryan: "stop after this next loop")
+19 iterations over the night. Summary for the morning:
+
+- **Backlog #1–4 (features, need deploy):** stale pricing aligned; door-sheet
+  honesty display (also fixed a **latent bug** — the honesty fields never
+  reached the client); manager-portal beat rename UI; KHB proximity band in the
+  profile card; per-field Create-a-Beat validation.
+- **#6 (need deploy):** scoreboard + training touch targets to the 64px iPad
+  floor; layout CSS audited — already brand-token-consistent.
+- **#5 + #7:** coverage sweep took every substantive source file to ~90–100%
+  (census, addresses, assessor, profile, sales/knocks routes, migration ALTER,
+  server error handler) and single-sourced three duplicated write-route helpers
+  (`isUniqueViolation`, `normalizeTimestamp`, `shapeSale`). Suite 275 → 339.
+- **Deploy batch:** all frontend changes have their `?v=` cache-busts bumped;
+  backend refactors are behavior-preserving. See each entry's "Needs deploy" line.
+- **Needs Ryan (decision):** the optional sub-35 "data coverage" hint on the door
+  sheet — needs a UX wording/placement call (see the door-honesty entry).
+- **Intentionally-left gaps:** CLI boot shims, the Overpass retry/backoff loop,
+  and the write-route unique-constraint race-recovery paths — all need a
+  fault-injection / fake-timer seam; not worth contriving.
+
+Master is green (339/339) and clean. `git log` since `d299854` has every change.
+
+---
+
 ## 2026-07-22 — Cover the app-level error handler (no HTML stack traces to reps)
 
 **Backlog item 5 (continued).** `server.js`'s centralized error handler is the
