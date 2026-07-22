@@ -20,7 +20,7 @@ don't sum to 1 — plus the success chaining return.
 
 - Files: `test/profile-validate.test.js`.
 - Suite: 323 → 328 tests, all green.
-- Commit: `PENDING`
+- Commit: `86c033f`
 - **Needs deploy?** No — tests only.
 
 ---
