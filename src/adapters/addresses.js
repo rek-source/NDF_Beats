@@ -69,6 +69,23 @@ function buildQuery(city, limit) {
 }
 
 /**
+ * Overpass QL for every addressed door within `radiusM` meters of a point —
+ * project-seeded beats (2026-07-21): the walkable ring around a completed
+ * KHB project.
+ */
+function buildAroundQuery(lat, lng, radiusM, limit) {
+  const r = Math.max(1, Math.trunc(radiusM));
+  return `
+    [out:json][timeout:60];
+    (
+      node["addr:housenumber"]["addr:street"](around:${r},${lat},${lng});
+      way["addr:housenumber"]["addr:street"](around:${r},${lat},${lng});
+    );
+    out center ${Math.max(1, Math.trunc(limit))};
+  `.trim();
+}
+
+/**
  * POST a query to Overpass with retry/backoff on 429/504 (the documented
  * rate-limit/timeout codes). Returns parsed JSON.
  */
@@ -147,6 +164,31 @@ function normalizeElement(el, city) {
  * twice. Rows missing a ZIP keep zip=null; the ingestion script backfills ZIP
  * from Tracerfy or a city default.
  */
+/**
+ * Fetch every addressed door within radiusM meters of a point (Overpass
+ * `around:`). Same normalization + dedupe as getCandidateAddresses.
+ * @param {number} lat
+ * @param {number} lng
+ * @param {number} radiusM  walking radius in meters (e.g. 420)
+ * @param {{city?: string, limit?: number}} [opts] fallback city for rows
+ *        whose OSM tags omit addr:city
+ */
+export async function getAddressesNearPoint(lat, lng, radiusM, { city = null, limit = 800 } = {}) {
+  const json = await overpass(buildAroundQuery(lat, lng, radiusM, limit));
+  const elements = Array.isArray(json.elements) ? json.elements : [];
+  const seen = new Set();
+  const rows = [];
+  for (const el of elements) {
+    const row = normalizeElement(el, city);
+    if (!row) continue;
+    const key = `${row.address.toLowerCase()}|${row.lat}|${row.lng}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    rows.push(row);
+  }
+  return rows;
+}
+
 export async function getCandidateAddresses(city, { limit = 1500 } = {}) {
   if (!countyForCity(city)) {
     throw new Error(`"${city}" is outside the NDF service area (${Object.keys(SERVICE_AREA).join(', ')})`);

@@ -97,7 +97,10 @@ async function fetchAcsForTract({ state, county, tract }) {
     tractCache.set(cacheKey, null);
     return null;
   }
-  const [, income, age, occUnits, ownerUnits] = data.map((v) => Number(v));
+  // Data row = requested variables IN ORDER, then geo columns — there is NO
+  // leading label column (bug fixed 2026-07-21: a phantom skip shifted every
+  // value one left, turning the state code "06" into the owner-unit count).
+  const [income, age, occUnits, ownerUnits] = data.map((v) => Number(v));
   const result = {
     median_income: income > 0 ? income : null,
     median_age: age > 0 ? age : null,

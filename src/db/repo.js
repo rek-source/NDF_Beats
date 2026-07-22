@@ -175,6 +175,24 @@ export function insertTarget(t) {
     });
 }
 
+/**
+ * Stamp project-proximity geo signals on an existing target (project-seeded
+ * ingest, 2026-07-21): distance to nearest completed KHB project, tract
+ * owner-occupancy rate, honest re-score + known_signals. Rows changed.
+ */
+export function updateTargetGeoSignals(targetId, { khb_project_dist_m, tract_owner_occ_rate, score, known_signals }) {
+  return getDb()
+    .prepare(
+      `UPDATE targets
+       SET khb_project_dist_m = @khb_project_dist_m,
+           tract_owner_occ_rate = @tract_owner_occ_rate,
+           score = @score,
+           known_signals = @known_signals
+       WHERE id = @id`,
+    )
+    .run({ id: targetId, khb_project_dist_m, tract_owner_occ_rate, score, known_signals }).changes;
+}
+
 /** Overwrite a target's score (profile-approval re-scoring). Rows changed. */
 export function updateTargetScore(targetId, score) {
   return getDb().prepare(`UPDATE targets SET score = ? WHERE id = ?`).run(score, targetId).changes;

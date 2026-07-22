@@ -86,3 +86,34 @@ test('partitionByEligibility reports the tract-based decisions distinctly', () =
   assert.equal(excluded.nonOwner, 1);
   assert.equal(excluded.ownerUnknown, 2, 'low-tract + no-data both counted as owner-unknown');
 });
+
+// ── repo: geo-signal update for existing rows ───────────────────────────────
+
+test('updateTargetGeoSignals persists dist/tract/score/known_signals', async () => {
+  const os = await import('node:os');
+  const path = await import('node:path');
+  const { randomUUID } = await import('node:crypto');
+  process.env.DB_PATH = path.join(os.tmpdir(), `ndf-geosig-${randomUUID()}.db`);
+  const { migrate } = await import('../src/db/migrate.js');
+  migrate();
+  const repo = await import('../src/db/repo.js');
+  const { closeDb } = await import('../src/db/connection.js');
+
+  const id = `tgt_${randomUUID()}`;
+  repo.insertTarget({
+    id, address: '1 Legacy Way', city: 'Modesto', county: 'Stanislaus', zip: '95355',
+    lat: 37.66, lng: -121.03, value_cents: 42000000, home_age: 30, owner_occupied: 1,
+    owner_occupied_known: 0, tenure_years: 5, recently_sold: 0, income_band: 5,
+    score: 82, no_soliciting: 0, solicit_status: 'unknown', known_signals: null,
+  });
+  const changed = repo.updateTargetGeoSignals(id, {
+    khb_project_dist_m: 210, tract_owner_occ_rate: 0.74, score: 27, known_signals: '["khb_proximity"]',
+  });
+  assert.equal(changed, 1);
+  const row = repo.getTargetById(id);
+  assert.equal(row.khb_project_dist_m, 210);
+  assert.equal(row.tract_owner_occ_rate, 0.74);
+  assert.equal(row.score, 27);
+  assert.equal(row.known_signals, '["khb_proximity"]');
+  closeDb();
+});
