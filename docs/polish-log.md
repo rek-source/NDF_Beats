@@ -27,7 +27,7 @@ Bumped `admin.js?v=a8 → a9`, `admin.css?v=a5 → a6`.
   `public/styles/admin.css`, `public/admin.html`, `test/admin.test.js`,
   `test/admin-profile-khb-ui.test.js`.
 - Suite: 294 → 296 tests, all green.
-- Commit: `PENDING`
+- Commit: `5cfa9e5`
 - **Needs deploy?** Yes — backend (route) + frontend (admin.js/css + cache-busts).
 
 ### Note (next iteration)
