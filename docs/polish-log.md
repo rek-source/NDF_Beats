@@ -28,7 +28,7 @@ New `test/door-coverage.test.js` runs the real bundle: a 2/7 door shows
 - Files: `src/routes/beats.routes.js`, `public/index.html`, `public/app.js`,
   `public/styles/app.css`, `test/door-coverage.test.js`.
 - Suite: 339 → 341 tests, all green.
-- Commit: `9f75a1f`
+- Commit: `43f7bab`
 - **Needs deploy?** Yes — backend + frontend (part of the deploy batch below).
 
 ---
